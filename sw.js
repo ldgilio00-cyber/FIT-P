@@ -1,4 +1,4 @@
-const CACHE = "fitplanner_gp_v22";
+const CACHE = "fitplanner_gp_v30";
 const BASE = new URL("./", self.location).pathname;
 
 const ASSETS = [
