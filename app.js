@@ -35,6 +35,29 @@ const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 // Date locali: UTC non deve spostare i giorni per utenti in Italia o altri fusi.
 const localISO = (date = new Date()) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
 const todayISO = () => localISO();
+// Il formato ISO resta riservato a localStorage, ordinamenti e chiavi: la UI usa sempre GG/MM/AAAA.
+function displayDate(value){
+  const s=String(value??"").trim();
+  const iso=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if(iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+  return s;
+}
+function parseItalianDate(input){
+  const s=String(input??"").trim();
+  const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s);
+  if(!m)return null;
+  const day=Number(m[1]),month=Number(m[2]),year=Number(m[3]);
+  if(year<1900||year>2100||month<1||month>12||day<1||day>31)return null;
+  const date=new Date(year,month-1,day,12);
+  if(date.getFullYear()!==year||date.getMonth()!==month-1||date.getDate()!==day)return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+function maskItalianDate(input){
+  const digits=input.value.replace(/\D/g,"").slice(0,8);
+  const pieces=[digits.slice(0,2),digits.slice(2,4),digits.slice(4,8)].filter(Boolean);
+  input.value=pieces.join("/");
+}
+
 function addLocalDays(iso, days){
   const [y,m,d] = iso.split("-").map(Number);
   const date = new Date(y,m-1,d+days,12);
@@ -197,16 +220,7 @@ function toKg(v){ const n=toNum(v); return (isFinite(n)&&n>0)?n:NaN; }
 function toReps(v){ const n=toNum(v); return (isFinite(n)&&n>=0)?n:NaN; }
 function normName(s){ return String(s||"").trim().toLowerCase(); }
 
-function shortDate(d){
-  // "2026-02-10" -> "10/02"
-  const s = String(d||"");
-  if (s.length >= 10){
-    const dd = s.slice(8,10);
-    const mm = s.slice(5,7);
-    return `${dd}/${mm}`;
-  }
-  return s;
-}
+function shortDate(d){return displayDate(d);}
 
 /* ================= STORICO + SUGGERIMENTI ================= */
 function getExerciseLastBest(exName){
@@ -263,7 +277,7 @@ function getExerciseLastBest(exName){
 function fmtHistoryLine(h){
   const l = h?.last;
   const lastTxt = l
-    ? `Ultima: ${l.kg.toFixed(1).replace(".0","")}kg${l.reps?` x ${l.reps}`:""} • ${l.date}`
+    ? `Ultima: ${l.kg.toFixed(1).replace(".0","")}kg${l.reps?` x ${l.reps}`:""} • ${displayDate(l.date)}`
     : "";
   const bestTxt = (h?.bestKg!==null && h?.bestKg!==undefined) ? `Best: ${h.bestKg.toFixed(1).replace(".0","")}kg` : "";
   return lastTxt && bestTxt ? `${lastTxt}  |  ${bestTxt}` : (lastTxt || bestTxt);
@@ -430,7 +444,7 @@ function drawChart(canvas, rows, mode){
   const padL = 42*devicePixelRatio;
   const padR = 14*devicePixelRatio;
   const padT = 22*devicePixelRatio;
-  const padB = 28*devicePixelRatio;
+  const padB = 54*devicePixelRatio;
 
   const ys = rows.map(r=>r[mode]);
   const yMin0 = Math.min(...ys);
@@ -497,7 +511,7 @@ function drawChart(canvas, rows, mode){
     points.push({
       cx: x/devicePixelRatio,
       cy: y/devicePixelRatio,
-      label: `${r.date} • ${mode.toUpperCase()}: ${vTxt}`
+      label: `${displayDate(r.date)} • ${mode.toUpperCase()}: ${vTxt}`
     });
   });
 
@@ -529,11 +543,16 @@ function drawChart(canvas, rows, mode){
   // x labels (solo alcuni per non affollare)
   ctx.globalAlpha = 0.7;
   ctx.font = `${10.5*devicePixelRatio}px system-ui`;
-  const step = Math.ceil(rows.length / 6);
+  const step = Math.ceil(rows.length / 3);
   for (let i=0;i<rows.length;i+=step){
     const x = xTo(i);
     const txt = shortDate(rows[i].date) || String(i+1);
-    ctx.fillText(txt, x - 10*devicePixelRatio, h - 10*devicePixelRatio);
+    ctx.save();
+    ctx.translate(x, h - 7*devicePixelRatio);
+    ctx.rotate(-Math.PI/4);
+    ctx.textAlign = i >= rows.length-2 ? "right" : "left";
+    ctx.fillText(txt, 0, 0);
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
 
@@ -749,7 +768,7 @@ function renderSessionModal(sessionId){
   const sub = $("modalSub");
   if(sub){
     const plan = s.planName ? ` • ${s.planName}` : "";
-    sub.textContent = `${s.date || ""}${plan}`.trim() || "—";
+    sub.textContent = `${displayDate(s.date)}${plan}`.trim() || "—";
   }
 
   const status = $("modalStatus");
@@ -790,8 +809,10 @@ function renderSessionModal(sessionId){
       `;
       const tags=row.querySelector(".tags");
       (it.sets || []).forEach((st,si)=>{
-        const t=document.createElement("span");
-        t.className="tag";
+        const t=document.createElement("button");
+        t.type="button";t.dataset.sessionJumpEx=String(ix);t.dataset.sessionJumpSet=String(si);
+        t.className="tag tagAction";
+        t.setAttribute("aria-label",`Modifica ${it.ex}, serie ${si+1}`);
         const kg = String(st?.kg||"").trim();
         const reps = String(st?.reps||"").trim();
         t.textContent = `#${si+1} ${kg?kg+"kg":""} ${reps?reps+" reps":"—"}`.trim();
@@ -877,6 +898,18 @@ document.addEventListener("click",(e)=>{
   if(!el) return;
 
   $("btnSessionModalClose")?.addEventListener("click", closeSessionModal);
+
+  $("modalBody")?.addEventListener("click",e=>{
+    const button=e.target.closest("[data-session-jump-set]");
+    const id=modalSessionId;if(!button||!id)return;
+    const exercise=Number(button.dataset.sessionJumpEx),set=Number(button.dataset.sessionJumpSet);
+    closeSessionModal();
+    resumeSessionFromHistory(id);
+    const session=activeSession();
+    if(!session?.items?.[exercise]?.sets?.[set])return;
+    state.activeExIndex=exercise;state.activeSetIndex=set;
+    persistSessionProgress();saveState();renderSession();
+  });
 
   $("btnSessionModalResume")?.addEventListener("click", ()=>{
     const id = modalSessionId;
@@ -1132,6 +1165,7 @@ function renderSingleSet(){
         <div class="badge">${s.closed ? "CHIUSA" : "ATTIVA"}</div>
       </div>
 
+      <div class="setPicker" role="group" aria-label="Seleziona la serie da modificare">${it.sets.map((set,n)=>`<button type="button" class="setChip ${n===idx?"active":""} ${String(set.reps??"").trim()?"done":""}" data-go-set="${n}" aria-label="Apri serie ${n+1}" aria-pressed="${n===idx}">${n+1}${String(set.reps??"").trim()?" ✓":""}</button>`).join("")}</div>
       ${histLine ? `<div class="tip" style="margin:0 0 10px 0">${escapeHTML(histLine)}</div>` : ""}
       ${sugLine ? `<div class="tip" style="margin:0 0 10px 0"><b>Suggerimento:</b> ${escapeHTML(sugLine)}</div>` : ""}
 
@@ -1176,7 +1210,7 @@ function renderSession(){
   if(!s) return closeSessionUI();
 
   $("sessionDay").textContent=s.dayName;
-  $("sessionDate").textContent=s.date;
+  $("sessionDate").textContent=displayDate(s.date);
 
   const it=s.items[state.activeExIndex];
   if(!it){ toast("La sessione non contiene esercizi"); closeSessionUI(); return; }
@@ -1207,6 +1241,9 @@ function renderSession(){
   }
 
   renderSingleSet();
+  const sCount=it.sets.length;
+  if($("btnPrevSet"))$("btnPrevSet").disabled=state.activeSetIndex===0;
+  if($("btnNextSet"))$("btnNextSet").disabled=state.activeSetIndex===sCount-1;
 }
 
 function saveSetAndAutoTimer(){
@@ -1234,18 +1271,26 @@ function saveSetAndAutoTimer(){
   toast(`Serie ${idx+1} salvata`);
 }
 
-function nextSet(){
+function goToSet(index){
+  const s=activeSession();if(!s)return;
+  const sets=s.items?.[state.activeExIndex]?.sets||[];
+  if(!Number.isInteger(index)||index<0||index>=sets.length)return;
   syncCurrentSetInputs();
-  persistSessionProgress();
-  const s=activeSession(); if(!s) return;
-  const it=s.items[state.activeExIndex];
-  if(state.activeSetIndex < it.sets.length-1){
-    state.activeSetIndex++;
-    persistSessionProgress();
-    saveState();
-    renderSession();
-  } else toast("Ultima serie: passa al prossimo esercizio");
+  state.activeSetIndex=index;
+  persistSessionProgress();saveState();renderSession();
 }
+function nextSet(){
+  const s=activeSession();if(!s)return;
+  if(state.activeSetIndex < (s.items?.[state.activeExIndex]?.sets?.length||0)-1)goToSet(state.activeSetIndex+1);
+  else toast("Ultima serie dell'esercizio");
+}
+function prevSet(){
+  if(state.activeSetIndex>0)goToSet(state.activeSetIndex-1);
+  else toast("Prima serie dell'esercizio");
+}
+$("singleSetBox")?.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-go-set]");if(btn)goToSet(Number(btn.dataset.goSet));
+});
 function nextExercise(){
   syncCurrentSetInputs();
   persistSessionProgress();
@@ -1278,6 +1323,7 @@ function prevExercise(){
 /* session buttons */
 $("btnSaveSet")?.addEventListener("click", saveSetAndAutoTimer);
 $("btnNextSet")?.addEventListener("click", nextSet);
+$("btnPrevSet")?.addEventListener("click", prevSet);
 $("btnNextExercise")?.addEventListener("click", nextExercise);
 $("btnNextEx")?.addEventListener("click", nextExercise);
 $("btnPrevEx")?.addEventListener("click", prevExercise);
@@ -1958,34 +2004,34 @@ function populateDietDays(){
 }
 
 function renderDietPreview(){
-  const box=$("dietPreview"), daySel=$("dietDaySelect"), mealSel=$("mealSelect");
-  const diet = getActiveDiet();
-  if(!box || !daySel || !mealSel) return;
-  if(!diet){ box.textContent="Crea una dieta per vedere i pasti."; return; }
-
-  const di=Number(daySel.value||0), mi=Number(mealSel.value||1);
-  const items=diet.week[di]?.meals?.[mi]||[];
-  const iso=dateForDietDay(di), eaten=!!state.consumed[iso]?.[diet.id]?.[mi];
-  box.innerHTML=`<div class="itemTop"><div class="muted small">${escapeHTML(iso)} • Pasto ${mi}</div>
-    <button class="btn ${eaten?'primary':''}" id="btnMealConsumed">${eaten?'✓ Consumato':'Segna consumato'}</button></div>`;
-  if(!items.length){
-    box.insertAdjacentHTML("beforeend",`<div class="muted">Pasto vuoto. Vai su “Le mie diete” → Modifica.</div>`);
-    return;
+  const box=$("dietPreview"), daySel=$("dietDaySelect");
+  const diet=getActiveDiet();
+  if(!box||!daySel)return;
+  box.replaceChildren();
+  if(!diet){box.textContent="Crea una dieta per vedere i pasti.";return;}
+  const dayIndex=Number(daySel.value||0), day=diet.week?.[dayIndex];
+  if(!day){box.textContent="Giorno non disponibile.";return;}
+  const date=dateForDietDay(dayIndex);
+  const total=Math.max(1,Number(state.settings.mealsPerDay)||5,...Object.keys(day.meals||{}).map(Number).filter(Number.isFinite));
+  const keys=Array.from({length:Math.min(total,12)},(_,i)=>String(i+1));
+  const consumed=state.consumed[date]?.[diet.id]||{};
+  const marked=keys.filter(k=>consumed[k]&&day.meals?.[k]?.length).length;
+  const available=keys.filter(k=>day.meals?.[k]?.length).length;
+  const heading=document.createElement("div");heading.className="dietDayHeading";
+  heading.innerHTML=`<div><div class="eyebrow">REGISTRO ALIMENTARE</div><h3>${escapeHTML(displayDate(date))}</h3><p class="muted small">Tutti i pasti, senza filtri. Tocca quelli che hai consumato.</p></div><div class="mealCounter">${marked}<span>/${available}</span><small>consumati</small></div>`;
+  box.appendChild(heading);
+  for(const key of keys){
+    const foods=day.meals?.[key]||[], eaten=Boolean(consumed[key]);
+    const card=document.createElement("section");
+    card.className="mealCard"+(eaten?" isConsumed":"");
+    const list=foods.length?foods.map(f=>`<li><span>${escapeHTML(f.food)}</span><b>${escapeHTML(f.qty)} ${escapeHTML(f.unit)}</b></li>`).join(""):
+      '<li class="mealEmpty">Nessun alimento pianificato</li>';
+    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">PASTO ${escapeHTML(key)}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} pasto ${escapeHTML(key)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul>`;
+    box.appendChild(card);
   }
-  items.forEach(it=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`
-      <div class="itemTop">
-        <div class="itemTitle">${escapeHTML(it.food)}</div>
-        <div class="badge">${escapeHTML(it.qty)} ${escapeHTML(it.unit)}</div>
-      </div>`;
-    box.appendChild(div);
-  });
 }
 
-$("dietDaySelect")?.addEventListener("change", renderDietPreview);
-$("mealSelect")?.addEventListener("change", renderDietPreview);
+$("dietDaySelect")?.addEventListener("change",renderDietPreview);
 
 /* ---------------- food planning, nutrition & purchases ---------------- */
 function dateForDietDay(dayIndex){
@@ -2019,7 +2065,7 @@ function renderDietWeek(){
     button.type="button"; button.dataset.dietWeek=i;
     const date=dateForDietDay(i);
     const checked=Object.values(state.consumed[date]?.[diet.id]||{}).filter(Boolean).length;
-    button.textContent=`${labels[i]} · ${foods.length} alimenti${checked?` · ${checked} pasti ✓`:""}`;
+    button.innerHTML=`<strong>${labels[i]}</strong><span>${displayDate(date)}</span><small>${foods.length} alimenti${checked?` · ${checked} ✓`:""}</small>`;
     box.appendChild(button);
   });
   const day=diet.week[index], foods=Object.values(day?.meals||{}).flat();
@@ -2034,16 +2080,16 @@ $("dietWeek")?.addEventListener("click",e=>{
   $("dietDaySelect").value=day.dataset.dietWeek;
   renderDietPreview(); renderDietWeek();
 });
-document.addEventListener("click",e=>{
-  if(!e.target.closest("#btnMealConsumed"))return;
+$("dietPreview")?.addEventListener("click",e=>{
+  const button=e.target.closest("[data-consume-meal]");if(!button)return;
   const di=Number($("dietDaySelect").value),iso=dateForDietDay(di);
-  const meal=$("mealSelect").value;
-  if(!getActiveDiet()?.week[di]?.meals[meal]?.length){toast("Prima aggiungi alimenti al pasto");return;}
+  const meal=button.dataset.consumeMeal,diet=getActiveDiet();
+  if(!diet?.week[di]?.meals?.[meal]?.length){toast("Prima aggiungi alimenti al pasto");return;}
   if(!state.consumed[iso])state.consumed[iso]={};
-  const dietId=getActiveDiet().id;
-  if(!state.consumed[iso][dietId])state.consumed[iso][dietId]={};
-  state.consumed[iso][dietId][meal]=!state.consumed[iso][dietId][meal];
+  if(!state.consumed[iso][diet.id])state.consumed[iso][diet.id]={};
+  state.consumed[iso][diet.id][meal]=!state.consumed[iso][diet.id][meal];
   saveState();renderDietPreview();renderDietWeek();homeRefresh();
+  toast(state.consumed[iso][diet.id][meal]?`Pasto ${meal} segnato come consumato`:`Pasto ${meal} da consumare`);
 });
 $("dietDaySelect")?.addEventListener("change",renderDietWeek);
 $("btnCopyDayToDay")?.addEventListener("click",()=>{
@@ -2074,10 +2120,9 @@ function foodCategory(food){
   return "Altro";
 }
 function rangeInput(){
-  let start=$("groceryStart").value,end=$("groceryEnd").value;
-  const iso=/^\d{4}-\d{2}-\d{2}$/;
-  if(!iso.test(start)||!iso.test(end)||end<start)return null;
-  const days=Math.round((new Date(end+"T12:00:00")-new Date(start+"T12:00:00"))/86400000)+1;
+  const start=parseItalianDate($("groceryStart").value),end=parseItalianDate($("groceryEnd").value);
+  if(!start||!end||end<start)return null;
+  const days=Math.round((Date.parse(end+"T12:00:00")-Date.parse(start+"T12:00:00"))/86400000)+1;
   if(!(days>=1&&days<=31))return null;
   return {start,end,days};
 }
@@ -2102,7 +2147,7 @@ function generateGrocery(){
 }
 function updateGrocery(){
   const result=generateGrocery();
-  if(!result){toast("Seleziona una dieta e un periodo di 1–31 giorni");return;}
+  if(!result){toast("Controlla le date GG/MM/AAAA e seleziona 1–31 giorni con una dieta attiva");return;}
   const rows=state.grocery.rows,previous=new Map(rows.map(r=>[r.id,r]));
   const excluded=state.grocery.excluded||[];
   const incoming=result.list.filter(r=>!excluded.includes(r.id));
@@ -2121,8 +2166,8 @@ function updateGrocery(){
 }
 function openGrocery(){
   const start=$("groceryStart"),end=$("groceryEnd");
-  if(!start.value)start.value=todayISO();
-  if(!end.value)end.value=addLocalDays(start.value,6);
+  if(!start.value)start.value=displayDate(state.grocery.context?.start||todayISO());
+  if(!end.value)end.value=displayDate(state.grocery.context?.end||addLocalDays(parseItalianDate(start.value)||todayISO(),6));
   if(!state.grocery.context && getActiveDiet())updateGrocery();
   else renderGrocery();
 }
@@ -2136,10 +2181,10 @@ function renderGrocery(){
   const excludedCount=(state.grocery.excluded||[]).length;
   if($("btnGroceryRestore"))$("btnGroceryRestore").hidden=!excludedCount;
   if(summary)summary.textContent=context?
-    `${count} da acquistare · ${rows.filter(r=>r.bought).length} spuntati · ${context.start} → ${context.end}`:
+    `${count} da acquistare · ${rows.filter(r=>r.bought).length} spuntati · ${displayDate(context.start)} → ${displayDate(context.end)}`:
     "Nessuna lista generata. Seleziona un periodo e premi Ricalcola.";
   if(excludedCount)summary.textContent+=` · ${excludedCount} prodotti esclusi manualmente`;
-  if(context && (context.dietId!==state.activeDietId || context.start!==$("groceryStart")?.value || context.end!==$("groceryEnd")?.value)){
+  if(context && (context.dietId!==state.activeDietId || context.start!==parseItalianDate($("groceryStart")?.value) || context.end!==parseItalianDate($("groceryEnd")?.value))){
     summary.textContent+=" · Periodo o dieta cambiati: premi Ricalcola";
   }
   if(!rows.length){box.textContent="Lista vuota. Crea una dieta o aggiungi un articolo manuale.";return;}
@@ -2159,8 +2204,15 @@ function renderGrocery(){
   }
 }
 function groceryItem(id){return state.grocery.rows.find(r=>r.id===id);}
-$("groceryStart")?.addEventListener("change",renderGrocery);
-$("groceryEnd")?.addEventListener("change",renderGrocery);
+for(const id of ["groceryStart","groceryEnd"]){
+  $(id)?.addEventListener("input",e=>{maskItalianDate(e.target);e.target.setCustomValidity("");});
+  $(id)?.addEventListener("change",e=>{
+    const date=parseItalianDate(e.target.value);
+    e.target.setCustomValidity(date?"":"Inserisci una data valida nel formato GG/MM/AAAA");
+    e.target.toggleAttribute("aria-invalid",!date);
+    renderGrocery();
+  });
+}
 $("btnGroceryUpdate")?.addEventListener("click",updateGrocery);
 $("btnGroceryManual")?.addEventListener("click",()=>{
   const food=$("groceryFood").value.trim(),qty=Number($("groceryQty").value),unit=$("groceryUnit").value;
@@ -2214,7 +2266,7 @@ $("btnGroceryRestore")?.addEventListener("click",()=>{
 });
 function groceryText(){
   const rows=state.grocery.rows;
-  return `SPESA FIT PLANNER\n${state.grocery.context?.start||""} → ${state.grocery.context?.end||""}\n\n`+
+  return `SPESA FIT PLANNER\n${displayDate(state.grocery.context?.start)} → ${displayDate(state.grocery.context?.end)}\n\n`+
     rows.map(r=>`${r.bought?'☑':'☐'} ${r.food}: ${Math.max(0,finiteNumber(r.qty)-finiteNumber(r.stock))} ${r.unit}${r.bought?' (acquistato)':''}`).join("\n");
 }
 $("btnGroceryCopy")?.addEventListener("click",async()=>{
@@ -2252,7 +2304,7 @@ function renderHistory(){
     div.innerHTML=`
       <div class="itemTop">
         <div class="itemTitle">${escapeHTML(s.dayName)}</div>
-        <div class="badge">${escapeHTML(s.date)}${s.closed?" • (chiusa)":" • (aperta)"}</div>
+        <div class="badge">${escapeHTML(displayDate(s.date))}${s.closed?" • (chiusa)":" • (aperta)"}</div>
       </div>
       <div class="muted small">Tocca per aprire e modificare</div>
     `;
@@ -2295,6 +2347,7 @@ function refreshHomeSessionButton(){
 }
 
 function homeRefresh(){
+  if($("homeDate"))$("homeDate").textContent=displayDate(todayISO());
   $("homeKcal").textContent=`Target ${state.settings.kcal} kcal`;
   $("homeSessions").textContent=String(state.sessions.length);
   $("homePlanName").textContent=getActivePlan()?.name || "—";
@@ -2318,7 +2371,7 @@ function homeRefresh(){
   if($("homeGrocery"))$("homeGrocery").textContent=`${state.grocery.rows.filter(r=>!r.bought && (r.qty-r.stock)>0).length} prodotti da acquistare`;
   if($("homeProgress")){
     const last=state.sessions.filter(s=>s.closed).sort((a,b)=>finiteNumber(b.ts)-finiteNumber(a.ts))[0];
-    $("homeProgress").textContent=last?`Ultimo completato: ${last.dayName} (${last.date})`:"Nessuna sessione completata";
+    $("homeProgress").textContent=last?`Ultimo completato: ${last.dayName} (${displayDate(last.date)})`:"Nessuna sessione completata";
   }
   refreshHomeSessionButton();
 }
@@ -2447,7 +2500,6 @@ $("btnStartSession")?.addEventListener("click", ()=>{
 $("btnTodayMeals")?.addEventListener("click", ()=>{
   setView("diet");
   $("dietDaySelect").value = String((new Date().getDay()+6)%7);
-  $("mealSelect").value = "1";
   renderDietPreview();renderDietWeek();
 });
 
@@ -2473,7 +2525,7 @@ $("btnExport")?.addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`fitplanner_backup_${todayISO()}.json`;
+  a.download=`fitplanner_backup_${displayDate(todayISO()).replaceAll("/","-")}.json`;
   a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });

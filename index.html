@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7fb" />
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b1220" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f5f9" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f131e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
@@ -43,7 +43,8 @@
         <div class="card hero">
           <div class="heroTop">
             <div>
-              <div class="heroTitle">Oggi</div>
+              <div class="heroTitle">IL TUO PERCORSO</div>
+              <div class="homeDate" id="homeDate">—</div>
               <div class="heroSub" id="homeTodayWorkout">—</div>
             </div>
             <div class="pill" id="homeKcal">—</div>
@@ -114,7 +115,7 @@
         <div class="card">
           <h2>Note PT</h2>
           <div class="tip"><b>Progressione</b>: se arrivi al top range con tecnica pulita → aumenta leggermente il carico o le reps.</div>
-          <div class="tip"><b>Timer</b>: dopo “Salva & Avvia timer” parte il recupero automatico del tuo esercizio.</div>
+          <div class="tip"><b>Timer</b>: dopo “Salva e avvia timer” parte il recupero automatico del tuo esercizio.</div>
         </div>
       </div>
     </section>
@@ -248,16 +249,6 @@
               <select id="dietDaySelect"></select>
             </label>
 
-            <label class="field">
-              <span>Pasto</span>
-              <select id="mealSelect">
-                <option value="1">Pasto 1</option>
-                <option value="2">Pasto 2</option>
-                <option value="3">Pasto 3</option>
-                <option value="4">Pasto 4</option>
-                <option value="5">Pasto 5</option>
-              </select>
-            </label>
           </div>
 
           <div class="sectionTitle">Settimana <span class="muted small">Tocca un giorno</span></div>
@@ -382,12 +373,12 @@
         <div class="card">
           <div class="cardHead"><div><h2>Lista della spesa</h2><p class="muted small">Generata dalla dieta attiva. Le modifiche manuali e le spunte restano salvate.</p></div></div>
           <div class="row groceryDates">
-            <label class="field"><span>Dal</span><input type="date" id="groceryStart"></label>
-            <label class="field"><span>Al</span><input type="date" id="groceryEnd"></label>
+            <label class="field"><span>Dal</span><input type="text" id="groceryStart" placeholder="GG/MM/AAAA" inputmode="numeric" maxlength="10" autocomplete="off" aria-label="Data iniziale, giorno mese anno"></label>
+            <label class="field"><span>Al</span><input type="text" id="groceryEnd" placeholder="GG/MM/AAAA" inputmode="numeric" maxlength="10" autocomplete="off" aria-label="Data finale, giorno mese anno"></label>
             <button class="btn primary" id="btnGroceryUpdate">Ricalcola lista</button>
             <button class="btn" id="btnGroceryRestore" hidden>Ripristina esclusi</button>
           </div>
-          <div class="tip small">Il ricalcolo aggiorna le quantità e conserva articoli manuali, spunte e scorte. Gli articoli eliminati manualmente rimangono esclusi fino al ripristino; quelli fuori piano già acquistati restano segnalati.</div>
+          <div class="tip small">Date in formato GG/MM/AAAA. Il ricalcolo aggiorna le quantità e conserva articoli manuali, spunte e scorte. Gli articoli eliminati manualmente rimangono esclusi fino al ripristino; quelli fuori piano già acquistati restano segnalati.</div>
           <div id="grocerySummary" class="grocerySummary" aria-live="polite"></div>
           <div id="groceryItems" class="list"></div>
         </div>
@@ -482,7 +473,7 @@
               <input id="fileImport" type="file" accept="application/json" hidden />
             </label>
           </div>
-          <p class="muted small">Versione Fit Planner v35 · dati locali su questo dispositivo</p>
+          <p class="muted small">Versione Fit Planner v36 · dati locali su questo dispositivo</p>
         </div>
       </div>
     </section>
@@ -493,19 +484,19 @@
   <!-- BOTTOM NAV (mobile) -->
   <nav class="bottomnav" aria-label="Navigazione">
     <button class="tab navbtn active" data-view="home" aria-label="Home">
-      <span class="navIcon">🏠</span><span class="navLabel">Home</span>
+      <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg></span><span class="navLabel">Home</span>
     </button>
     <button class="tab navbtn" data-view="workout" aria-label="Allenamento">
-      <span class="navIcon">🏋️</span><span class="navLabel">Workout</span>
+      <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M2 10v4m3-7v10m3-13v16m8-16v16m3-13v10m3-7v4M8 12h8"/></svg></span><span class="navLabel">Workout</span>
     </button>
     <button class="tab navbtn" data-view="diet" aria-label="Dieta">
-      <span class="navIcon">🥗</span><span class="navLabel">Dieta</span>
+      <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12h18a9 9 0 0 1-18 0ZM7 9c0-3 2-5 5-6m4 6c.5-2 2-3 4-3M5 19h14"/></svg></span><span class="navLabel">Dieta</span>
     </button>
     <button class="tab navbtn" data-view="grocery" aria-label="Spesa">
-      <span class="navIcon">🛒</span><span class="navLabel">Spesa</span>
+      <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h2l2.3 11H19l2-8H7M10 20h.01M18 20h.01"/></svg></span><span class="navLabel">Spesa</span>
     </button>
     <button class="tab navbtn" data-view="progress" aria-label="Progressi">
-      <span class="navIcon">📈</span><span class="navLabel">Progressi</span>
+      <span class="navIcon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18V5m0 13h18M6 15l5-5 4 3 6-8"/></svg></span><span class="navLabel">Progressi</span>
     </button>
   </nav>
 
@@ -529,7 +520,7 @@
         <button class="btn" id="btnTimerPause">Pausa</button>
         <button class="btn" id="btnTimerSkip">Salta</button>
       </div>
-      <div class="muted small" id="timerHint">Parte automaticamente dopo “Salva & Avvia timer”.</div>
+      <div class="muted small" id="timerHint">Parte automaticamente dopo “Salva e avvia timer”.</div>
     </div>
 
     <div class="sessionBody">
@@ -546,8 +537,8 @@
     </div>
 
     <div class="sessionBottom">
-      <button class="btn primary big" id="btnSaveSet">Salva & Avvia timer</button>
-      <button class="btn big" id="btnNextSet">Prossima serie</button>
+      <button class="btn primary big" id="btnSaveSet">Salva e avvia timer</button>
+      <div class="seriesNavigation"><button class="btn" id="btnPrevSet" aria-label="Serie precedente">← Serie</button><button class="btn" id="btnNextSet" aria-label="Serie successiva">Serie →</button></div>
       <button class="btn big" id="btnNextExercise">Prossimo esercizio</button>
     </div>
   </section>
@@ -575,7 +566,7 @@
         </div>
 
         <div class="card" style="margin-top:14px;">
-          <h2>Dettaglio</h2>
+          <h2>Dettaglio <span class="muted small">Tocca una serie per modificarla</span></h2>
           <div id="modalBody" class="list"></div>
         </div>
       </div>
