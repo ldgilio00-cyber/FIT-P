@@ -22,18 +22,78 @@ if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.getRegistration().then(r=>r?.update()).catch(()=>{}));
 }
 document.getElementById("btnReloadApp")?.addEventListener("click",()=>location.reload());
+// iOS Home Screen PWA: la tastiera riduce visualViewport, NON l'altezza
+// logica del pannello. Ridimensionarlo a ogni resize lasciava un enorme vuoto
+// e spostava i comandi sopra il campo selezionato (caso reale su iPhone).
+let sessionBaseHeight=0;
+let keyboardScrollTask=null;
+let editingBlurTask=null;
+function sessionKeyboardActive(){
+  const session=document.getElementById("session");
+  return !!session && session.classList.contains("keyboard-editing");
+}
 function updateKeyboardInset(){
-  if(!window.visualViewport)return;
-  const vp=window.visualViewport;
-  const inset=Math.max(0,Math.round(window.innerHeight-vp.height-vp.offsetTop));
-  document.documentElement.style.setProperty("--keyboard-inset",`${inset}px`);
-  // iOS Safari: il pannello di allenamento usa l'altezza visibile con tastiera aperta,
-  // ma il footer non si sposta più in modo indipendente dal contenuto.
-  document.documentElement.style.setProperty("--session-viewport-height",`${Math.round(vp.height)}px`);
+  const vv=window.visualViewport;
+  const visualH=Math.round(vv?.height||window.innerHeight);
+  const offset=Math.max(0,Math.round(vv?.offsetTop||0));
+  if(!sessionKeyboardActive()){
+    sessionBaseHeight=Math.max(visualH,Math.round(window.innerHeight));
+  }
+  const base=Math.max(sessionBaseHeight||visualH,visualH);
+  const covered=sessionKeyboardActive()?Math.max(0,base-visualH-offset):0;
+  const root=document.documentElement.style;
+  root.setProperty("--keyboard-inset",`${covered}px`);
+  // Mantieni lo stesso viewport del pannello mentre appare la tastiera.
+  root.setProperty("--session-viewport-height",`${base}px`);
+  root.setProperty("--session-keyboard-space",`${covered}px`);
+  if(sessionKeyboardActive())queueFocusedSetScroll();
+}
+function scrollFocusedSetIntoView(){
+  const target=document.activeElement;
+  const scroll=document.querySelector("#session .sessionBody");
+  if(!scroll || !sessionKeyboardActive() || !target?.matches?.("#inKg, #inReps"))return;
+  const vh=window.visualViewport?.height || window.innerHeight;
+  const r=target.getBoundingClientRect(), body=scroll.getBoundingClientRect();
+  const desired=body.top+Math.max(35,Math.min(112,Math.round(vh*.19)));
+  const offset=r.top-desired;
+  if(Math.abs(offset)>5)scroll.scrollTop=Math.max(0,scroll.scrollTop+offset);
+}
+function queueFocusedSetScroll(){
+  if(keyboardScrollTask)clearTimeout(keyboardScrollTask);
+  keyboardScrollTask=setTimeout(scrollFocusedSetIntoView,70);
+}
+function changeSessionEditing(active){
+  const session=document.getElementById("session");
+  if(!session)return;
+  session.classList.toggle("keyboard-editing",active);
+  if(!active){
+    document.documentElement.style.setProperty("--session-keyboard-space","0px");
+  }
+  updateKeyboardInset();
+  if(active){
+    queueFocusedSetScroll();
+    // Il visual viewport iOS si assesta dopo l'animazione della tastiera.
+    setTimeout(()=>{if(sessionKeyboardActive()){updateKeyboardInset();scrollFocusedSetIntoView();}},280);
+  }
 }
 window.visualViewport?.addEventListener("resize",updateKeyboardInset);
 window.visualViewport?.addEventListener("scroll",updateKeyboardInset);
 window.addEventListener("resize",updateKeyboardInset);
+window.addEventListener("orientationchange",()=>setTimeout(updateKeyboardInset,160));
+// focusin/focusout in delega: renderSingleSet ricrea spesso gli input.
+document.addEventListener("focusin",e=>{
+  if(!e.target?.matches?.("#session #inKg, #session #inReps"))return;
+  clearTimeout(editingBlurTask);
+  changeSessionEditing(true);
+});
+document.addEventListener("focusout",e=>{
+  if(!e.target?.matches?.("#session #inKg, #session #inReps"))return;
+  clearTimeout(editingBlurTask);
+  editingBlurTask=setTimeout(()=>{
+    const current=document.activeElement;
+    if(!current?.matches?.("#session #inKg, #session #inReps"))changeSessionEditing(false);
+  },130);
+});
 updateKeyboardInset();
 const $ = (id) => document.getElementById(id);
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
@@ -1129,8 +1189,11 @@ function openSessionUI(){
   $("session")?.classList.remove("hidden");
   document.body.classList.add("session-open");
   document.body.style.overflow="hidden";
+  changeSessionEditing(false);
 }
 function closeSessionUI(){
+  if(document.activeElement?.matches?.("#session input"))document.activeElement.blur();
+  changeSessionEditing(false);
   $("session")?.classList.add("hidden");
   document.body.classList.remove("session-open");
   document.body.style.overflow="";
@@ -1222,14 +1285,15 @@ function renderSingleSet(){
       </div>
 
       <div class="setPicker" role="group" aria-label="Seleziona la serie da modificare">${it.sets.map((set,n)=>`<button type="button" class="setChip ${n===idx?"active":""} ${String(set.reps??"").trim()?"done":""}" data-go-set="${n}" aria-label="Apri serie ${n+1}" aria-pressed="${n===idx}">${n+1}${String(set.reps??"").trim()?" ✓":""}</button>`).join("")}</div>
+      <div class="setEditingTools" aria-label="Comandi inserimento"><span>Inserimento serie ${idx+1}</span><button type="button" class="btn" data-done-set-editing>✓ Fine</button></div>
       <div class="singleGrid">
         <label class="field">
           <span>Kg</span>
-          <input inputmode="decimal" id="inKg" type="text" value="${escapeHTML(st.kg)}">
+          <input inputmode="decimal" id="inKg" type="text" autocomplete="off" enterkeyhint="done" aria-label="Carico in chilogrammi" value="${escapeHTML(st.kg)}">
         </label>
         <label class="field">
           <span>Reps</span>
-          <input inputmode="numeric" id="inReps" type="number" min="0" step="1" value="${escapeHTML(st.reps)}">
+          <input inputmode="numeric" id="inReps" type="text" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" aria-label="Ripetizioni effettive" value="${escapeHTML(st.reps)}">
         </label>
 
       </div>
@@ -1256,6 +1320,11 @@ function renderSingleSet(){
   $("inReps")?.addEventListener("input", onReps);
   $("inReps")?.addEventListener("change", onReps);
   $("inReps")?.addEventListener("blur", onReps);
+  ["inKg","inReps"].forEach(id=>$(id)?.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){
+      e.preventDefault();syncCurrentSetInputs();saveState();e.target.blur();changeSessionEditing(false);
+    }
+  }));
 }
 
 function renderSession(){
@@ -1345,6 +1414,13 @@ function prevSet(){
   else toast("Prima serie dell'esercizio");
 }
 $("singleSetBox")?.addEventListener("click",e=>{
+  if(e.target.closest("[data-done-set-editing]")){
+    syncCurrentSetInputs();saveState();
+    if(document.activeElement?.matches?.("#inKg, #inReps"))document.activeElement.blur();
+    changeSessionEditing(false);
+    toast("Valori conservati");
+    return;
+  }
   const btn=e.target.closest("[data-go-set]");if(btn)goToSet(Number(btn.dataset.goSet));
 });
 function nextExercise(){

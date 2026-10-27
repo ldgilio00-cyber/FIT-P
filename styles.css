@@ -1082,3 +1082,73 @@ body{
 @media(prefers-reduced-motion:reduce){
   #session *{transition:none!important;animation:none!important;}
 }
+
+
+/* ======================================================================
+   v40 · iOS standalone keyboard: stesse dimensioni del pannello prima e
+   durante l'editing; lo spazio coperto è scrollabile, non comprime la card.
+   Workout scuro ispirato alla UI richiesta, anche con tema sistema chiaro.
+   ====================================================================== */
+#session{
+  --bg:#0b101b;--card:#171e2d;--surface:#192233;--surface2:#1d2739;
+  --surface3:#1d2739;--badgeBg:#293247;--text:#f2f5ff;--muted:#a3b1c9;
+  --line:rgba(174,195,234,.12);--primary:#6c9cff;
+  --primarySoft:rgba(80,129,255,.20);--danger:#ff8491;
+  --dangerSoft:rgba(255,112,138,.12);
+  color:var(--text);
+  background:linear-gradient(180deg,#10192a 0%,#0b101b 78%)!important;
+  height:var(--session-viewport-height,100dvh)!important;
+  max-height:none!important;
+  -webkit-text-size-adjust:100%;
+}
+#session .sessionTop{background:rgba(19,27,44,.94);color:var(--text);border-color:var(--line);}
+#session .sessionTop .btn{background:#202b40;color:var(--text);border-color:var(--line);}
+#session .sessionTop .btn.danger{background:rgba(255,110,138,.12);color:#ffacba;}
+#session .sessionDate{color:var(--muted);}
+#session .timerCard{background:#15233a;color:#f5f8ff;border:1px solid rgba(109,151,224,.18);}
+#session .timerCard .timerHint{color:#aebbd3;}
+#session .timerCard .timerRow .btn{background:#253450;color:#e7f0ff;border-color:rgba(255,255,255,.08);}
+#session .sessionNav .btn{background:#1b283d;border-color:var(--line);color:#e9efff;}
+#session .exName{color:#f2f5ff;}
+#session .exTarget{color:#aebbd3;}
+#session .singleCard{background:#171f2f;color:#eef3ff;border:1px solid rgba(165,188,229,.10);}
+#session .singleCard .badge{background:#26354e;color:#c8d8f7;border:0;}
+#session .setPicker .setChip{background:#232e42;color:#c7d5ef;border:1px solid rgba(145,177,245,.15);}
+#session .setPicker .setChip.active{background:#456ced;color:#fff;border-color:#7996ff;}
+#session .singleGrid .field span{color:#aebbd3;}
+#session .singleGrid input{background:#243148;color:#fff;border:1px solid rgba(182,202,240,.19);font-size:24px;}
+#session .singleGrid input:focus{border-color:#78a2ff;box-shadow:0 0 0 3px rgba(83,143,255,.19);}
+#session .sessionBottom{background:#131a28;border-color:rgba(148,177,231,.14);}
+#session .sessionBottom .btn{background:#263248;border-color:rgba(155,182,236,.13);color:#f6f8ff;}
+#session .sessionBottom .btn.primary{background:#587fee;color:white;border-color:#688eff;}
+#session .singleTarget{color:#aebbd3;}
+#session .setAdvice{border-color:rgba(174,195,234,.12);}
+#session .setAdvice summary{color:#98b9ff;}
+#session .setEditingTools{display:none;align-items:center;justify-content:space-between;gap:12px;
+  margin:0 0 12px;font-size:12px;font-weight:700;color:#b2c3e2;}
+#session .setEditingTools .btn{background:#416bdf;color:white;min-height:38px;padding:8px 13px;border:0;border-radius:11px;}
+/* Tastiera iPhone: nascondere controlli non necessari durante i numeri.
+   NON fissare il footer sopra la tastiera: la schermata resta scrollabile. */
+#session.keyboard-editing .sessionTop,
+#session.keyboard-editing .timerCard,
+#session.keyboard-editing .sessionBottom{display:none!important;}
+#session.keyboard-editing .sessionBody{
+  flex:1 1 auto!important;overflow-y:auto!important;overflow-x:hidden!important;
+  min-height:0!important;
+  padding:10px 12px calc(var(--session-keyboard-space,0px) + 40px)!important;
+  scroll-padding:12px 0 0;
+  -webkit-overflow-scrolling:touch;
+}
+#session.keyboard-editing .sessionNav{margin:0 0 6px;}
+#session.keyboard-editing .exTarget{display:none;}
+#session.keyboard-editing .singleCard{padding:14px;}
+#session.keyboard-editing .singleTop{margin:0 0 6px;}
+#session.keyboard-editing .setPicker{display:none!important;}
+#session.keyboard-editing .setEditingTools{display:flex;}
+#session.keyboard-editing .singleGrid input{min-height:62px;}
+#session.keyboard-editing .setAdvice{display:none;}
+#session.keyboard-editing .singleTarget{margin-top:8px;}
+@media(max-width:360px){
+ #session .sessionBottom .btn{font-size:11px;}
+ #session .timerCore .timerTime{font-size:26px;}
+}

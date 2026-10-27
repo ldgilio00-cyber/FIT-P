@@ -1,43 +1,53 @@
-# Fit Planner Premium v39 — navigazione chiara e allenamento stabile
+# Fit Planner v40 — Correzione tastiera iPhone PWA + Allenamento scuro
 
-Aggiornamento incrementale della **v38** del 27/10/2026. Non è un nuovo progetto né un reset dei dati. Lo ZIP contiene solo i file modificati e nuovi, conservando i percorsi `FIT-P-main/`.
+Aggiornamento incrementale della **v39**, applicabile sovrascrivendo esclusivamente i file presenti in questo archivio. Mantiene tutti gli altri file della v39, le icone, le schede, le diete, la spesa e lo storico.
 
-## Modifiche v39
+## Perché è stato necessario
 
-| File | Modifiche |
+Nella PWA installata sulla **schermata Home di iPhone** (modalità standalone), aprire la tastiera numerica cambiava il `visualViewport`. La v39 ricalcolava direttamente l'altezza dell'intero pannello allenamento su quell'altezza ridotta: questo può spostare i comandi davanti alla scheda o far sparire i campi kg/ripetizioni. La correzione non è un semplice aumento dei margini: cambia la gestione della tastiera.
+
+## Correzione v40
+
+- Il pannello allenamento **mantiene l'altezza di riferimento** all'apertura della tastiera; non si comprime più ogni volta che cambia `visualViewport`.
+- Il sistema calcola lo spazio coperto dalla tastiera e lo riserva **nell'area scrollabile dell'allenamento**. Quando si scrive nei campi kg/ripetizioni, i comandi inferiori, l'intestazione e il timer si nascondono temporaneamente: il campo resta libero e visibile.
+- Nuovo pulsante **✓ Fine** vicino ai campi; chiude la tastiera e ripristina la vista completa. I valori sono salvati già durante la digitazione.
+- I campi sono entrambi adatti alla tastiera numerica iPhone. Per i kg restano validi sia `75,5` sia `75.5`; le ripetizioni accettano solo numeri interi positivi al salvataggio della serie.
+- Allenamento con **tema scuro dedicato**, schede blu notte, contrasto elevato, timer compatto e campo kg/ripetizioni in primo piano, ispirato allo stile grafico richiesto.
+- Versione interfaccia e cache PWA aggiornate a **v40**.
+
+## File inclusi e motivazione
+
+| File | Cosa cambia |
 | --- | --- |
-| `index.html` | Barra inferiore ripristinata in uno stile semplice con cinque etichette e icone riconoscibili; Impostazioni con un unico ingranaggio compatto; timer riorganizzato su una riga; esercizi e comandi meglio distinti; versione v39; icona Apple dedicata. |
-| `styles.css` | Ripristino barra inferiore senza dock flottante; layout dell'allenamento con colonna flessibile stabile, timer compatto, area esercizio scorrevole e comandi sempre allineati; adattamenti per 320–430 px e schermi bassi. |
-| `app.js` | Adattamento dell'altezza del pannello allenamento alla viewport visibile in iOS, suggerimenti spostati in sezione apribile, target esercizio più conciso, selettore serie centrato; logica dati invariata. |
-| `sw.js` | Versione cache `fitplanner-static-v39-20261027` e nuovo asset per icona iPhone. |
-| `brand-mark.svg` | Logo semplificato: un manubrio riconoscibile, senza lettere astratte. |
-| `icon-192.png` | Icona PWA aggiornata. |
-| `icon-512.png` | Icona PWA aggiornata. |
-| `apple-touch-icon.png` | Nuova icona 180×180 per la schermata Home di iPhone. |
-| `README.md` | Changelog e test aggiornati. |
+| `app.js` | Gestione focus/tastiera nella PWA standalone, altezza pannello stabile, compensazione dello spazio coperto, comando Fine e tastiera numerica. |
+| `styles.css` | Modalità di inserimento senza footer sovrapposto, scorrimento protetto, grafica allenamento blu notte in stile app. |
+| `index.html` | Numero di versione v40. |
+| `sw.js` | Nuova cache `fitplanner-static-v40-20261027` per aggiornare insieme i file. |
+| `README.md` | Questa guida. |
 
-`manifest.webmanifest` e gli altri file del progetto **non sono stati modificati** e devono rimanere nella cartella esistente.
+La chiave di salvataggio resta **`fitplanner_v7`**: non vengono rimosse o convertite le sessioni e non viene modificato il formato persistente dei dati.
 
-## Cosa verificare su iPhone
+## Installazione corretta su iPhone
 
-1. **Prima dell'aggiornamento**, da Impostazioni esporta un backup JSON e verifica che sia leggibile. Mantieni l'indirizzo esatto del sito: `localStorage` non segue automaticamente un cambio di dominio/percorso.
-2. Sostituisci tutti i file presenti nello ZIP, mantenendo le cartelle originali. Apri Safari sull'indirizzo esistente e usa **Aggiorna app** se appare il relativo avviso. Controlla che la versione sia `v39` in Impostazioni.
-3. **Barra delle pagine:** devono comparire `Home`, `Palestra`, `Dieta`, `Spesa`, `Progressi`, con icone evidenti e non ambigue. Impostazioni deve essere un piccolo pulsante nell'angolo superiore destro, non una riga aggiuntiva.
-4. **Allenamento:** avvia una sessione con più esercizi e 3–4 serie. Il timer deve stare in alto, su una riga compatta. Prova Start, Pausa e Salta. Verifica che i campi kg/reps siano grandi e che i comandi Salva, Serie precedente, Serie successiva ed Esercizio successivo non si spostino dopo le azioni.
-5. **Tastiera iPhone:** tocca il campo Kg e il campo Reps. Verifica che la tastiera non copra permanentemente il campo attivo o il tasto necessario e che, richiusa la tastiera, il layout torni stabile.
-6. **Persistenza:** compila una serie, passa alla successiva e torna indietro; i dati devono restare. Chiudi l'allenamento, aprilo dallo storico e controlla le serie salvate.
-7. **Dieta e Spesa:** verifica che i nomi personalizzati dei pasti, le spunte `Consumato`, gli articoli della spesa e le scorte siano rimasti. Le date devono continuare a comparire come `GG/MM/AAAA`.
-8. **Icona:** se la PWA è già installata sulla Home, iOS può mantenere l'icona precedente nella cache. Prima di valutare il risultato, apri e aggiorna il sito. Non eliminare l'app o i suoi dati prima di aver verificato il backup.
-9. **Offline:** dopo aver visitato online la v39 e completato l'aggiornamento, riapri la PWA in modalità aereo e verifica l'avvio. Non cancellare la cache manualmente durante questa prova.
+1. Dalla PWA attuale apri **Impostazioni → Export JSON** e conserva un backup.
+2. Pubblica nella cartella originale sullo **stesso indirizzo web** tutti i file dello ZIP, senza cambiare nome o percorso della cartella.
+3. Sul telefono connesso a Internet, apri l'app **dalla sua icona nella schermata Home** e usa **Aggiorna app** quando appare. Se non appare, chiudi completamente l'app e riaprila con Internet attivo.
+4. In **Impostazioni** verifica che sia indicata la **v40**. Non cancellare dati del sito né disinstallare l'app per forzare l'aggiornamento: perderesti i dati locali se non ripristinabili da backup.
 
-## Verifiche tecniche eseguite
+## Test concreto sul tuo iPhone
 
-- Controllo di sintassi JavaScript con Node.js.
-- Verifica delle nuove dimensioni delle icone PWA e Apple.
-- Test di interazione in Chromium headless con HTML/CSS/JavaScript caricati localmente nella pagina senza navigazione HTTP: viewport **320×568, 375×667, 390×844 e 430×932 px**. In questi test il footer della sessione resta allineato e non vengono rilevati errori JavaScript.
-- Test di salvataggio serie, passaggio serie precedente/successiva, Start/Pausa/Salta, passaggio esercizio, chiusura sessione, persistenza del carico, rinomina dei pasti e spunte consumati.
-- Non è stato possibile verificare il Service Worker installato tramite un vero URL navigabile a causa delle restrizioni dell'ambiente, né provare su iPhone fisico/Safari. Questi test rimangono necessari.
+1. Apri una sessione di allenamento. Controlla che il timer sia compatto e che la scheda dell'esercizio sia leggibile.
+2. Tocca il campo **Kg** e poi **Reps**: la tastiera deve aprirsi e i campi devono restare sopra, senza footer che li copre e senza grande salto di layout.
+3. Digita `75,5` kg e `10` ripetizioni. Tocca **✓ Fine**: deve sparire la tastiera e devono tornare timer e pulsanti normali.
+4. Premi **Serie →**, poi **← Serie**: devono rimanere `75,5` e `10` nella serie precedente.
+5. Verifica anche il flusso **Salva e avvia timer**, **Prossimo esercizio**, **Chiudi**, poi riapri la sessione dallo storico.
+6. Esci completamente dalla PWA e riaprila. Verifica che schede, diete, spesa, serie e consumi registrati siano ancora presenti.
 
-## Sicurezza dati
+## Test effettivamente effettuati
 
-La chiave di salvataggio resta **`fitplanner_v7`**. La struttura esistente di schede, diete e sessioni non è stata sostituita. Salva comunque un backup JSON prima di aggiornare: è il modo più sicuro per recuperare i dati nel caso un dispositivo elimini la propria memoria locale.
+- Sintassi JS di `app.js` e `sw.js` verificata con Node.js.
+- Test automatizzati con Chromium emulando larghezze 320, 375, 390 e 430 px, con verifica dell'allineamento di timer, corpo sessione e comandi.
+- Test flussi: modifica kg e ripetizioni, persistenza, navigazione serie, timer, esercizio successivo, chiusura sessione, nomi pasti e registrazione dei pasti consumati.
+- Simulazione della contrazione di `visualViewport` dovuta a tastiera fino a 350 px: campo visibile, pannello non compresso, pulsante Fine e ritorno alla vista normale.
+
+**Limite importante**: queste sono simulazioni browser, **non** un test fisico di Safari/WebKit in modalità standalone su iPhone. Il comportamento della tastiera Apple va verificato col test sopra sul tuo dispositivo. Questa correzione è specificamente progettata per il problema visibile nel tuo screenshot.
