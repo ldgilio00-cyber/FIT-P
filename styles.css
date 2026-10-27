@@ -569,7 +569,7 @@ body{overflow:hidden}
 #groceryShareFallback:focus{outline:3px solid var(--primarySoft)}
 
 /* ======================================================================
-   Fit Planner v36 · iOS-first visual system / premium UI
+   Fit Planner v37 · iOS-first visual system / premium UI
    Uses native San Francisco on Apple, system fonts everywhere else.
    ====================================================================== */
 :root{
@@ -860,3 +860,57 @@ body{
 .weekDay span{font-variant-numeric:tabular-nums;font-size:10px;white-space:nowrap;letter-spacing:-.025em;}
 .weekDay small{font-size:10px;line-height:1.2;font-weight:590;color:var(--muted);}
 .weekDay.selected small{color:var(--primary);}
+
+
+/* ======================================================================
+   Fit Planner v37 · extra mobile-first polish / named meals
+   ====================================================================== */
+.headerSettings{min-height:44px;border-radius:14px;}
+@media (max-width: 760px){
+  .topbar{padding-bottom:10px;}
+  .topbar .brandText{padding-right:0;}
+  .headerSettings{position:static;display:inline-flex;margin-top:10px;width:100%;justify-content:center;}
+  .tabs{display:none!important;}
+  .wrap{max-width:none;}
+  .view{padding:16px 14px calc(112px + env(safe-area-inset-bottom));}
+  .grid{gap:12px;}
+  .card{border-radius:22px;padding:16px;}
+  .card h2{font-size:19px;}
+  .row{gap:8px;}
+  .row > .field, .row > .btn, .row > label.file{flex:1 1 100%; min-width:0!important;}
+  .actions{grid-template-columns:1fr 1fr;}
+  .hero{padding:20px 18px 18px; border-radius:26px;}
+  .heroSub{font-size:26px;}
+  .heroActions{gap:9px;}
+  .heroActions .btn{min-height:48px;}
+  .homeHighlights{grid-template-columns:1fr 1fr;}
+  .hero .quickTile{min-height:88px;border-radius:18px;}
+  .heroMini{grid-template-columns:1fr 1fr;}
+  .field input,.field select,.field textarea,.btn,.iconBtn{min-height:48px;border-radius:15px;}
+  .btn.big{min-height:52px;border-radius:17px;}
+  .item{padding:14px;}
+  .itemTop{align-items:flex-start;}
+  .badge{margin-top:2px;}
+  .miniActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;}
+  .miniActions .iconBtn{width:100%;min-height:44px;}
+  .groceryDates{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .groceryDates > .btn{grid-column:1/-1;}
+  .bottomnav{position:sticky;bottom:0;left:0;right:0;padding:8px 10px calc(8px + env(safe-area-inset-bottom));border-top-left-radius:22px;border-top-right-radius:22px;}
+  .navbtn{min-height:58px;border-radius:16px;}
+  .navbtn.active{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 18%, transparent);}
+  #dietPreview{gap:12px;}
+  .mealCard{border-radius:20px;}
+  .mealCardTop{gap:10px;align-items:flex-start;}
+  .mealToggle{min-width:150px;min-height:46px;border-radius:14px;}
+  .mealFoods li{padding:10px 0;}
+}
+@media (max-width: 420px){
+  .heroTop{flex-direction:column;align-items:flex-start;}
+  .hero .pill{align-self:flex-start;}
+  .homeHighlights,.heroMini,.actions,.kpiRow{grid-template-columns:1fr;}
+  .miniActions{grid-template-columns:1fr 1fr;}
+  .groceryDates{grid-template-columns:1fr;}
+  .sessionBottom{grid-template-columns:1fr;}
+  .seriesNavigation{grid-template-columns:1fr 1fr;}
+}
+.mealRenameHint{margin-top:6px;}

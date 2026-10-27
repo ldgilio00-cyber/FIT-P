@@ -72,6 +72,56 @@ function escapeHTML(value){
 }
 function finiteNumber(v){const n=Number(v); return Number.isFinite(n) ? n : 0;}
 
+const DEFAULT_MEAL_NAMES = {
+  1:"Colazione",
+  2:"Spuntino",
+  3:"Pranzo",
+  4:"Merenda",
+  5:"Cena",
+  6:"Post workout",
+  7:"Spuntino serale",
+  8:"Extra"
+};
+function mealLabelForIndex(index){
+  const key=String(index);
+  return DEFAULT_MEAL_NAMES[key] || `Pasto ${key}`;
+}
+function ensureDietMealNames(diet){
+  if(!diet || typeof diet!=="object") return;
+  if(!diet.mealNames || typeof diet.mealNames!=="object" || Array.isArray(diet.mealNames)) diet.mealNames={};
+  let maxKey=Math.max(1, Number(state?.settings?.mealsPerDay)||5);
+  (diet.week||[]).forEach(day=>{
+    Object.keys(day?.meals||{}).forEach(key=>{
+      const n=Number(key);
+      if(Number.isFinite(n)) maxKey=Math.max(maxKey,n);
+    });
+  });
+  maxKey=Math.min(12,maxKey);
+  for(let i=1;i<=maxKey;i++){
+    const key=String(i);
+    const raw=String(diet.mealNames[key] ?? "").trim();
+    diet.mealNames[key]=raw || mealLabelForIndex(i);
+  }
+}
+function getMealLabel(diet, key){
+  ensureDietMealNames(diet);
+  return String(diet?.mealNames?.[String(key)] || mealLabelForIndex(key)).trim();
+}
+function getDietMealKeys(diet){
+  ensureDietMealNames(diet);
+  let max=Math.max(1, Number(state?.settings?.mealsPerDay)||5);
+  (diet?.week||[]).forEach(day=>{
+    Object.keys(day?.meals||{}).forEach(key=>{
+      const n=Number(key);
+      if(Number.isFinite(n)) max=Math.max(max,n);
+    });
+  });
+  max=Math.min(12,max);
+  return Array.from({length:max},(_,i)=>String(i+1));
+}
+function mealHeading(diet,key){
+  return getMealLabel(diet,key).toUpperCase();
+}
 
 const KEY = "fitplanner_v7";
 
@@ -110,6 +160,7 @@ const DEFAULT = {
   ui: {
     planEditId: null, planEditDayId: null,
     dietEditId: null, dietEditDayIndex: 0, dietEditMeal: 1,
+    dietEditMealNameDirty: false,
     exProgName: "", exProgMode: "best",
     sessionOpenId: null,     // sessione aperta da storico / attiva
   }
@@ -1762,6 +1813,27 @@ function populateDietEditDays(){
   }
   sel.value = String(state.ui.dietEditDayIndex || 0);
 }
+function populateDietMealSelect(diet){
+  const sel=$("dietEditMealSelect");
+  if(!sel || !diet) return;
+  const current=String(state.ui.dietEditMeal || sel.value || 1);
+  sel.innerHTML="";
+  getDietMealKeys(diet).forEach(key=>{
+    const o=document.createElement("option");
+    o.value=key;
+    o.textContent=getMealLabel(diet,key);
+    sel.appendChild(o);
+  });
+  sel.value=getDietMealKeys(diet).includes(current)?current:getDietMealKeys(diet)[0];
+}
+function syncMealNameEditor(){
+  const d=dietEditing();
+  const input=$("dietMealName");
+  if(!d || !input) return;
+  const key=String($("dietEditMealSelect")?.value || state.ui.dietEditMeal || 1);
+  input.value=getMealLabel(d,key);
+  state.ui.dietEditMealNameDirty=false;
+}
 
 function renderDietFoodsList(){
   const d = dietEditing();
@@ -1774,6 +1846,7 @@ function renderDietFoodsList(){
   state.ui.dietEditDayIndex = di;
   state.ui.dietEditMeal = mi;
   saveState();
+  syncMealNameEditor();
 
   const items = d.week[di].meals[mi] || [];
   box.innerHTML = "";
@@ -1815,7 +1888,9 @@ function openDietEditor(dietId){
   $("dietName").value = d.name;
 
   populateDietEditDays();
+  populateDietMealSelect(d);
   $("dietEditMealSelect").value = String(state.ui.dietEditMeal || 1);
+  syncMealNameEditor();
   renderDietFoodsList();
   setView("dietedit");
 }
@@ -1907,9 +1982,40 @@ $("btnDietSaveName")?.addEventListener("click", ()=>{
   toast("Nome salvato");
 });
 function clearFoodEdit(){delete state.ui.editFoodIndex; const b=$("btnAddFood"); if(b)b.textContent="Aggiungi";
-  ["foodNameIn","nutrient_kcal","nutrient_p","nutrient_c","nutrient_f","nutrientSource"].forEach(id=>{if($(id))$(id).value="";});}
+  ["foodNameIn","foodQtyIn","nutrient_kcal","nutrient_p","nutrient_c","nutrient_f","nutrientSource"].forEach(id=>{if($(id))$(id).value="";});}
 $("dietEditDaySelect")?.addEventListener("change", ()=>{clearFoodEdit();renderDietFoodsList();});
-$("dietEditMealSelect")?.addEventListener("change", ()=>{clearFoodEdit();renderDietFoodsList();});
+$("dietEditMealSelect")?.addEventListener("change", ()=>{clearFoodEdit();syncMealNameEditor();renderDietFoodsList();});
+$("dietMealName")?.addEventListener("input", ()=>{state.ui.dietEditMealNameDirty=true;});
+$("btnDietSaveMealName")?.addEventListener("click", ()=>{
+  const d=dietEditing(); if(!d) return;
+  const key=String($("dietEditMealSelect")?.value || state.ui.dietEditMeal || 1);
+  const value=$("dietMealName")?.value.trim();
+  if(!value){toast("Inserisci il nome del pasto"); return;}
+  ensureDietMealNames(d);
+  d.mealNames[key]=value.slice(0,32);
+  state.ui.dietEditMealNameDirty=false;
+  saveState();
+  populateDietMealSelect(d);
+  $("dietEditMealSelect").value=key;
+  syncMealNameEditor();
+  renderDietFoodsList();
+  renderDietPreview();
+  renderDietWeek();
+  toast("Nome pasto salvato");
+});
+$("btnDietResetMealNames")?.addEventListener("click", ()=>{
+  const d=dietEditing(); if(!d) return;
+  if(!confirm("Ripristinare i nomi standard dei pasti per questa dieta?")) return;
+  d.mealNames={};
+  ensureDietMealNames(d);
+  saveState();
+  populateDietMealSelect(d);
+  syncMealNameEditor();
+  renderDietFoodsList();
+  renderDietPreview();
+  renderDietWeek();
+  toast("Nomi pasti ripristinati");
+});
 
 $("btnAddFood")?.addEventListener("click", ()=>{
   const d = dietEditing(); if(!d) return;
@@ -2012,8 +2118,7 @@ function renderDietPreview(){
   const dayIndex=Number(daySel.value||0), day=diet.week?.[dayIndex];
   if(!day){box.textContent="Giorno non disponibile.";return;}
   const date=dateForDietDay(dayIndex);
-  const total=Math.max(1,Number(state.settings.mealsPerDay)||5,...Object.keys(day.meals||{}).map(Number).filter(Number.isFinite));
-  const keys=Array.from({length:Math.min(total,12)},(_,i)=>String(i+1));
+  const keys=getDietMealKeys(diet);
   const consumed=state.consumed[date]?.[diet.id]||{};
   const marked=keys.filter(k=>consumed[k]&&day.meals?.[k]?.length).length;
   const available=keys.filter(k=>day.meals?.[k]?.length).length;
@@ -2026,7 +2131,8 @@ function renderDietPreview(){
     card.className="mealCard"+(eaten?" isConsumed":"");
     const list=foods.length?foods.map(f=>`<li><span>${escapeHTML(f.food)}</span><b>${escapeHTML(f.qty)} ${escapeHTML(f.unit)}</b></li>`).join(""):
       '<li class="mealEmpty">Nessun alimento pianificato</li>';
-    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">PASTO ${escapeHTML(key)}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} pasto ${escapeHTML(key)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul>`;
+    const label=getMealLabel(diet,key);
+    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">${escapeHTML(mealHeading(diet,key))}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} ${escapeHTML(label)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul>`;
     box.appendChild(card);
   }
 }
@@ -2065,7 +2171,8 @@ function renderDietWeek(){
     button.type="button"; button.dataset.dietWeek=i;
     const date=dateForDietDay(i);
     const checked=Object.values(state.consumed[date]?.[diet.id]||{}).filter(Boolean).length;
-    button.innerHTML=`<strong>${labels[i]}</strong><span>${displayDate(date)}</span><small>${foods.length} alimenti${checked?` · ${checked} ✓`:""}</small>`;
+    const plannedMeals=getDietMealKeys(diet).filter(key=>(day.meals?.[key]||[]).length).length;
+    button.innerHTML=`<strong>${labels[i]}</strong><span>${displayDate(date)}</span><small>${foods.length} alimenti · ${plannedMeals} pasti${checked?` · ${checked} ✓`:""}</small>`;
     box.appendChild(button);
   });
   const day=diet.week[index], foods=Object.values(day?.meals||{}).flat();
@@ -2089,7 +2196,8 @@ $("dietPreview")?.addEventListener("click",e=>{
   if(!state.consumed[iso][diet.id])state.consumed[iso][diet.id]={};
   state.consumed[iso][diet.id][meal]=!state.consumed[iso][diet.id][meal];
   saveState();renderDietPreview();renderDietWeek();homeRefresh();
-  toast(state.consumed[iso][diet.id][meal]?`Pasto ${meal} segnato come consumato`:`Pasto ${meal} da consumare`);
+  const label=getMealLabel(diet,meal);
+  toast(state.consumed[iso][diet.id][meal]?`${label} segnato come consumato`:`${label} da consumare`);
 });
 $("dietDaySelect")?.addEventListener("change",renderDietWeek);
 $("btnCopyDayToDay")?.addEventListener("click",()=>{
@@ -2391,7 +2499,7 @@ function renderSettings(){
 }
 
 function defaultDietWeek(){
-  return {id:uid().slice(0,8), name:"Nuovo piano alimentare",
+  return {id:uid().slice(0,8), name:"Nuovo piano alimentare", mealNames:{1:"Colazione",2:"Spuntino",3:"Pranzo",4:"Merenda",5:"Cena"},
     week:Array.from({length:7},()=>({meals:{1:[],2:[],3:[],4:[],5:[]}}))};
 }
 function defaultWorkout4Days(){
@@ -2424,7 +2532,8 @@ $("btnPlanNew")?.addEventListener("click", ()=>{
 $("btnDietNew")?.addEventListener("click", ()=>{
   const name = prompt("Nome nuova dieta:", "Nuova dieta");
   if(!name) return;
-  const d = { id: uid().slice(0,8), name: name.trim(), week: defaultDietWeek().week };
+  const d = defaultDietWeek();
+  d.name = name.trim();
   state.diets.push(d);
   state.activeDietId = d.id;
   saveState();
@@ -2569,7 +2678,7 @@ function ensureBaseData(){
 
   // ✅ normalizza ID (per compatibilità con dati vecchi: number/string)
   state.plans.forEach(p=>{p.id=sid(p.id);(p.days||[]).forEach(d=>d.id=sid(d.id));});
-  state.diets.forEach(d=>d.id=sid(d.id));
+  state.diets.forEach(d=>{d.id=sid(d.id); ensureDietMealNames(d);});
   if(state.activePlanId!=null) state.activePlanId=sid(state.activePlanId);
   if(state.activeDietId!=null) state.activeDietId=sid(state.activeDietId);
   state.sessions.forEach(s=>{

@@ -1,13 +1,13 @@
-# Fit Planner Premium v36 — iPhone UI, date italiane, serie e pasti (27/10/2026)
+# Fit Planner Premium v37 — mobile-first, pasti nominabili e UI più app-like (27/10/2026)
 
-Questo aggiornamento è una **patch incrementale della v35**, non una riscrittura. Lo ZIP contiene **esclusivamente i file modificati**, con gli stessi percorsi del progetto. Lascia al loro posto le icone `icon-192.png` e `icon-512.png`, che non sono incluse.
+Questo aggiornamento è una **patch incrementale della v36**, non una riscrittura. Lo ZIP contiene **esclusivamente i file modificati**, con gli stessi percorsi del progetto. Lascia al loro posto le icone `icon-192.png` e `icon-512.png`, che non sono incluse.
 
 ## Prima di installare
 
-1. Da Fit Planner v35, apri **Impostazioni → Esporta JSON** e conserva un backup leggibile (controlla che sia un JSON non vuoto).
+1. Da Fit Planner v36, apri **Impostazioni → Esporta JSON** e conserva un backup leggibile (controlla che sia un JSON non vuoto).
 2. Sostituisci **insieme** tutti i file dello ZIP, senza rinominare la cartella né cambiare il dominio/indirizzo web dove utilizzi la PWA.
 3. Su iPhone apri Fit Planner dal link originale in **Safari** o dall'icona della schermata Home. Quando appare l'avviso di nuova versione, scegli **Aggiorna app**, quindi riapri la schermata iniziale.
-4. In Impostazioni controlla la versione **v36** e verifica che vecchie schede, diete e sessioni siano presenti. Non cancellare i dati di Safari o disinstallare la PWA fino a quando non hai verificato il backup.
+4. In Impostazioni controlla la versione **v37** e verifica che vecchie schede, diete e sessioni siano presenti. Non cancellare i dati di Safari o disinstallare la PWA fino a quando non hai verificato il backup.
 
 La chiave `localStorage` resta **`fitplanner_v7`**. Le date già memorizzate rimangono **`AAAA-MM-GG` internamente** per non rompere chiavi, ordinamenti e backup. **Tutte le date mostrate nell'interfaccia** vengono invece rese come **`GG/MM/AAAA`**, inclusi storico, sessione, dashboard, dieta, grafici e spesa. I due campi del periodo Spesa accettano **solo** `GG/MM/AAAA`: controllano anche giorni e anni bisestili. La data nel nome del file backup usa `GG-MM-AAAA` perché lo slash non è adatto ai nomi dei file.
 
@@ -19,7 +19,7 @@ La chiave `localStorage` resta **`fitplanner_v7`**. Le date già memorizzate rim
 | `index.html` | Eliminato il filtro Pasto dalla registrazione giornaliera, aggiunti pulsanti serie precedente/successiva, date Spesa come campi `GG/MM/AAAA` con tastiera numerica iPhone, icone vettoriali monocromatiche per le cinque schede in basso, aggiornato numero versione e colori di Safari. |
 | `styles.css` | Nuovo stile premium iOS: palette elegante adattiva (chiaro/scuro), tipografia di sistema Apple, dashboard scura con sfumature discrete, superfici pulite, pulsanti e navigazione inferiore coerenti, controlli allenamento ottimizzati, selettore di serie, card consumi individuali, supporto safe-area e dimensioni di tocco adeguate. |
 | `manifest.webmanifest` | Allineamento del colore di sfondo al nuovo tema. |
-| `sw.js` | Cache rinominata in `fitplanner-static-v36-20261027` per aggiornare correttamente gli asset della patch. |
+| `sw.js` | Cache rinominata in `fitplanner-static-v37-20261027b` per aggiornare correttamente gli asset della patch. |
 | `README.md` | Istruzioni installazione, changelog e guida di test. |
 
 ## Guida di verifica iPhone

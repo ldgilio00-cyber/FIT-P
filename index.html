@@ -7,6 +7,7 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f131e" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Fit Planner" />
   <link rel="apple-touch-icon" href="./icon-192.png" />
 <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="stylesheet" href="./styles.css" />
@@ -310,14 +311,14 @@
             </label>
             <label class="field" style="min-width:160px">
               <span>Pasto</span>
-              <select id="dietEditMealSelect">
-                <option value="1">Pasto 1</option>
-                <option value="2">Pasto 2</option>
-                <option value="3">Pasto 3</option>
-                <option value="4">Pasto 4</option>
-                <option value="5">Pasto 5</option>
-              </select>
+              <select id="dietEditMealSelect"></select>
             </label>
+            <label class="field" style="min-width:220px; flex:1">
+              <span>Nome pasto</span>
+              <input id="dietMealName" type="text" maxlength="32" placeholder="Es. Colazione, Pranzo, Spuntino" />
+            </label>
+            <button class="btn primary" id="btnDietSaveMealName">Salva nome pasto</button>
+            <button class="btn" id="btnDietResetMealNames">Ripristina nomi standard</button>
 
             <button class="btn" id="btnCopyDayToAll">Copia giorno su tutti</button>
             <label class="field"><span>Destinazione</span><select id="copyDayTarget">
@@ -325,7 +326,7 @@
               <option value="3">Giovedì</option><option value="4">Venerdì</option><option value="5">Sabato</option><option value="6">Domenica</option>
             </select></label>
             <button class="btn" id="btnCopyDayToDay">Copia su giorno</button>
-            <button class="btn" id="btnCopyMealToAllDays">Copia pasto su tutti</button>
+            <button class="btn" id="btnCopyMealToAllDays">Copia pasto su tutti i giorni</button>
           </div>
         </div>
 
@@ -473,7 +474,7 @@
               <input id="fileImport" type="file" accept="application/json" hidden />
             </label>
           </div>
-          <p class="muted small">Versione Fit Planner v36 · dati locali su questo dispositivo</p>
+          <p class="muted small">Versione Fit Planner v37 · dati locali su questo dispositivo</p>
         </div>
       </div>
     </section>

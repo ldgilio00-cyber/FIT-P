@@ -4,8 +4,10 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#f4f5f9",
   "theme_color": "#f4f5f9",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "./icon-192.png",

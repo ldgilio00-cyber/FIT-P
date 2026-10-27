@@ -1,5 +1,5 @@
 /* Cache atomica dei soli file dell'app; evita cache di richieste non pertinenti. */
-const CACHE = "fitplanner-static-v36-20261027";
+const CACHE = "fitplanner-static-v37-20261027b";
 const BASE = new URL("./", self.location).pathname;
 const ASSETS = ["", "index.html", "styles.css", "app.js", "manifest.webmanifest", "icon-192.png", "icon-512.png"];
 const URLS = ASSETS.map(a => new URL(a || "./", self.registration.scope).href);
