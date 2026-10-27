@@ -51,7 +51,7 @@ function updateKeyboardInset(){
 function scrollFocusedSetIntoView(){
   const target=document.activeElement;
   const scroll=document.querySelector("#session .sessionBody");
-  if(!scroll || !sessionKeyboardActive() || !target?.matches?.("#inKg, #inReps"))return;
+  if(!scroll || !sessionKeyboardActive() || !target?.matches?.("#session [data-set-field]"))return;
   const vh=window.visualViewport?.height || window.innerHeight;
   const r=target.getBoundingClientRect(), body=scroll.getBoundingClientRect();
   const desired=body.top+Math.max(35,Math.min(112,Math.round(vh*.19)));
@@ -82,16 +82,16 @@ window.addEventListener("resize",updateKeyboardInset);
 window.addEventListener("orientationchange",()=>setTimeout(updateKeyboardInset,160));
 // focusin/focusout in delega: renderSingleSet ricrea spesso gli input.
 document.addEventListener("focusin",e=>{
-  if(!e.target?.matches?.("#session #inKg, #session #inReps"))return;
+  if(!e.target?.matches?.("#session [data-set-field]"))return;
   clearTimeout(editingBlurTask);
   changeSessionEditing(true);
 });
 document.addEventListener("focusout",e=>{
-  if(!e.target?.matches?.("#session #inKg, #session #inReps"))return;
+  if(!e.target?.matches?.("#session [data-set-field]"))return;
   clearTimeout(editingBlurTask);
   editingBlurTask=setTimeout(()=>{
     const current=document.activeElement;
-    if(!current?.matches?.("#session #inKg, #session #inReps"))changeSessionEditing(false);
+    if(!current?.matches?.("#session [data-set-field]"))changeSessionEditing(false);
   },130);
 });
 updateKeyboardInset();
@@ -1184,6 +1184,8 @@ function timerAutoFromExercise(){
   timerStop(); timerSet(parseRestToSeconds(it.target.rest)); timerStart();
 }
 document.addEventListener("visibilitychange",timerTick);
+document.addEventListener("visibilitychange",()=>{if(document.hidden && activeSession()){syncCurrentSetInputs();persistSessionProgress();saveState();}});
+window.addEventListener("pagehide",()=>{if(activeSession()){syncCurrentSetInputs();persistSessionProgress();saveState();}});
 
 function openSessionUI(){
   $("session")?.classList.remove("hidden");
@@ -1250,13 +1252,52 @@ function activeSession(){
 }
 
 function syncCurrentSetInputs(){
-  const s = activeSession(); if(!s) return;
-  const it = s.items?.[state.activeExIndex]; if(!it) return;
-  const st = it.sets?.[state.activeSetIndex]; if(!st) return;
-  const kgEl = $("inKg");
-  const repsEl = $("inReps");
-  if(kgEl) st.kg = kgEl.value;
-  if(repsEl) st.reps = repsEl.value;
+  const s=activeSession();if(!s)return;
+  const it=s.items?.[state.activeExIndex];if(!it)return;
+  const table=$("singleSetBox");
+  const inputs=table?.querySelectorAll("[data-set-field][data-set-index]")||[];
+  if(inputs.length){
+    inputs.forEach(input=>{
+      const idx=Number(input.dataset.setIndex),field=input.dataset.setField;
+      if(it.sets[idx] && (field==="kg"||field==="reps"))it.sets[idx][field]=input.value;
+    });
+  }else{
+    const st=it.sets?.[state.activeSetIndex];if(!st)return;
+    if($("inKg"))st.kg=$("inKg").value;
+    if($("inReps"))st.reps=$("inReps").value;
+  }
+}
+
+function lastExerciseSets(exName){
+  const current=sid(state.activeSessionId),name=normName(exName);
+  const sessions=[...state.sessions].filter(s=>sid(s.id)!==current)
+    .sort((a,b)=>(b.ts||0)-(a.ts||0));
+  for(const session of sessions){
+    const item=session.items?.find(it=>normName(it.ex)===name && it.sets?.some(x=>String(x.reps??"").trim()));
+    if(item)return item.sets;
+  }
+  return [];
+}
+function setRowIsDone(row){
+  return String(row?.reps??"").trim()!=="" && Number(row.reps)>0;
+}
+function updateSessionRowUI(index){
+  const s=activeSession(),it=s?.items?.[state.activeExIndex];if(!it)return;
+  const body=$("singleSetBox");
+  body?.querySelectorAll("[data-set-row]").forEach(row=>{
+    const i=Number(row.dataset.setRow);
+    const done=setRowIsDone(it.sets[i]);
+    row.classList.toggle("active",i===state.activeSetIndex);
+    row.classList.toggle("done",done);
+    const status=row.querySelector(".seriesStatus");
+    if(status)status.textContent=done?"✓":"○";
+  });
+  const heading=body?.querySelector("[data-series-heading]");
+  if(heading)heading.textContent=`Serie ${state.activeSetIndex+1} di ${it.sets.length}`;
+  const count=body?.querySelector("[data-sets-completed]");
+  if(count)count.textContent=`${it.sets.filter(setRowIsDone).length}/${it.sets.length} completate`;
+  if($("btnPrevSet"))$("btnPrevSet").disabled=state.activeSetIndex===0;
+  if($("btnNextSet"))$("btnNextSet").disabled=state.activeSetIndex===it.sets.length-1;
 }
 
 function persistSessionProgress(){
@@ -1266,65 +1307,34 @@ function persistSessionProgress(){
 }
 
 function renderSingleSet(){
-  const s=activeSession(); if(!s) return;
-  const it=s.items[state.activeExIndex];
-  const idx=state.activeSetIndex;
-  const st=it.sets[idx];
-
-  const hist = getExerciseLastBest(it.ex);
-  const histLine = fmtHistoryLine(hist);
-
-  const sug = suggestNextTarget(it.ex, it.target);
-  const sugLine = sug?.message || "";
-
-  $("singleSetBox").innerHTML=`
-    <div class="singleCard">
-      <div class="singleTop">
-        <div class="singleTitle">Serie ${idx+1} di ${it.sets.length}</div>
-        <div class="badge">${s.closed ? "CHIUSA" : "ATTIVA"}</div>
-      </div>
-
-      <div class="setPicker" role="group" aria-label="Seleziona la serie da modificare">${it.sets.map((set,n)=>`<button type="button" class="setChip ${n===idx?"active":""} ${String(set.reps??"").trim()?"done":""}" data-go-set="${n}" aria-label="Apri serie ${n+1}" aria-pressed="${n===idx}">${n+1}${String(set.reps??"").trim()?" ✓":""}</button>`).join("")}</div>
-      <div class="setEditingTools" aria-label="Comandi inserimento"><span>Inserimento serie ${idx+1}</span><button type="button" class="btn" data-done-set-editing>✓ Fine</button></div>
-      <div class="singleGrid">
-        <label class="field">
-          <span>Kg</span>
-          <input inputmode="decimal" id="inKg" type="text" autocomplete="off" enterkeyhint="done" aria-label="Carico in chilogrammi" value="${escapeHTML(st.kg)}">
-        </label>
-        <label class="field">
-          <span>Reps</span>
-          <input inputmode="numeric" id="inReps" type="text" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" aria-label="Ripetizioni effettive" value="${escapeHTML(st.reps)}">
-        </label>
-
-      </div>
-
-      <div class="singleTarget">Obiettivo ${escapeHTML(it.target.repMin)}–${escapeHTML(it.target.repMax)} ripetizioni</div>
-      ${(histLine || sugLine || s.closed) ? `<details class="setAdvice"><summary>Storico e suggerimenti</summary>${histLine ? `<p>${escapeHTML(histLine)}</p>` : ""}${sugLine ? `<p>${escapeHTML(sugLine)}</p>` : ""}${s.closed ? `<p>Sessione chiusa: puoi comunque correggere questa serie.</p>` : ""}</details>` : ""}
-    </div>
-  `;
-
-  // auto-compila kg suggerito SOLO se vuoto (vale anche sulle vecchie sessioni)
-  if (sug?.kgSuggested && !String(st.kg||"").trim()){
-    st.kg = sug.kgSuggested.toFixed(1).replace(".0","");
-    saveState();
-    $("inKg").value = st.kg;
-  }
-
-  const onKg = (e)=>{ st.kg = e.target.value; saveState(); };
-  const onReps = (e)=>{ st.reps = e.target.value; saveState(); };
-
-  $("inKg")?.addEventListener("input", onKg);
-  $("inKg")?.addEventListener("change", onKg);
-  $("inKg")?.addEventListener("blur", onKg);
-
-  $("inReps")?.addEventListener("input", onReps);
-  $("inReps")?.addEventListener("change", onReps);
-  $("inReps")?.addEventListener("blur", onReps);
-  ["inKg","inReps"].forEach(id=>$(id)?.addEventListener("keydown",e=>{
-    if(e.key==="Enter"){
-      e.preventDefault();syncCurrentSetInputs();saveState();e.target.blur();changeSessionEditing(false);
-    }
-  }));
+  const s=activeSession();if(!s)return;
+  const it=s.items[state.activeExIndex],idx=state.activeSetIndex;
+  const hist=getExerciseLastBest(it.ex),line=fmtHistoryLine(hist);
+  const sug=suggestNextTarget(it.ex,it.target),prev=lastExerciseSets(it.ex);
+  const fmt=v=>String(v??"").trim();
+  const completed=it.sets.filter(setRowIsDone).length;
+  const rows=it.sets.map((set,n)=>{
+    const was=prev[n]||{};
+    const prevText=(fmt(was.kg)||fmt(was.reps))?`Ultima: ${escapeHTML(fmt(was.kg)||"—")} kg × ${escapeHTML(fmt(was.reps)||"—")}`:"";
+    const hintKg=(n===0&&sug?.kgSuggested!=null)?String(sug.kgSuggested.toFixed(1)).replace(/\.0$/,''):fmt(was.kg);
+    return `<div class="seriesTableRow ${n===idx?"active":""} ${setRowIsDone(set)?"done":""}" data-set-row="${n}">
+      <div class="seriesIndex"><b>${n+1}</b><span class="seriesStatus">${setRowIsDone(set)?"✓":"○"}</span></div>
+      <label class="seriesCell"><span class="srOnly">Kg serie ${n+1}</span><input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-set-index="${n}" data-set-field="kg" value="${escapeHTML(set.kg)}" placeholder="${escapeHTML(hintKg||"Kg")}" aria-label="Kg serie ${n+1}"></label>
+      <label class="seriesCell"><span class="srOnly">Ripetizioni serie ${n+1}</span><input type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" data-set-index="${n}" data-set-field="reps" value="${escapeHTML(set.reps)}" placeholder="${escapeHTML(fmt(was.reps)||"Rip.")}" aria-label="Ripetizioni serie ${n+1}"></label>
+      <button class="seriesRowButton" type="button" data-go-set="${n}" aria-label="Seleziona serie ${n+1}">${n===idx?'●':'›'}</button>
+      ${prevText?`<div class="seriesPrevious">${prevText}</div>`:""}
+    </div>`;
+  }).join("");
+  $("singleSetBox").innerHTML=`<div class="singleCard setsTableCard">
+    <div class="singleTop"><div><div class="singleTitle" data-series-heading>Serie ${idx+1} di ${it.sets.length}</div><small class="muted" data-sets-completed>${completed}/${it.sets.length} completate</small></div><div class="badge">${s.closed?"CHIUSA":"ATTIVA"}</div></div>
+    <div class="setEditingTools"><span>Modifica i valori delle serie</span><button type="button" class="btn" data-done-set-editing>✓ Fine</button></div>
+    <div class="seriesTableHeader"><span>SERIE</span><span>KG</span><span>RIP.</span><span></span></div>
+    <div class="seriesTable">${rows}</div>
+    <div class="singleTarget">Obiettivo: ${escapeHTML(it.target.repMin)}–${escapeHTML(it.target.repMax)} rip.</div>
+    ${sug?`<div class="suggestionBox"><span>Carico proposto: <strong>${escapeHTML(sug.kgSuggested.toFixed(1).replace(".0",""))} kg</strong></span><button class="btn" type="button" data-use-suggestion>Usa</button></div>`:""}
+    ${(line||sug?.message)?`<details class="setAdvice"><summary>Prestazioni precedenti e progressione</summary>${line?`<p>${escapeHTML(line)}</p>`:""}${sug?.message?`<p>${escapeHTML(sug.message)}</p>`:""}</details>`:""}
+    <div class="autoSaveMessage" aria-live="polite">Le modifiche vengono salvate automaticamente.</div>
+  </div>`;
 }
 
 function renderSession(){
@@ -1413,16 +1423,45 @@ function prevSet(){
   if(state.activeSetIndex>0)goToSet(state.activeSetIndex-1);
   else toast("Prima serie dell'esercizio");
 }
+$("singleSetBox")?.addEventListener("focusin",e=>{
+  const input=e.target.closest("[data-set-field][data-set-index]");if(!input)return;
+  state.activeSetIndex=Number(input.dataset.setIndex);
+  persistSessionProgress();saveState();updateSessionRowUI(state.activeSetIndex);
+});
+$("singleSetBox")?.addEventListener("input",e=>{
+  const input=e.target.closest("[data-set-field][data-set-index]");if(!input)return;
+  const session=activeSession(),item=session?.items?.[state.activeExIndex];if(!item)return;
+  const idx=Number(input.dataset.setIndex),field=input.dataset.setField;
+  if(!item.sets[idx]||!["kg","reps"].includes(field))return;
+  item.sets[idx][field]=input.value;
+  state.activeSetIndex=idx;
+  persistSessionProgress();
+  saveState(); // ogni input e' una bozza persistente; nessun valore viene inventato
+  updateSessionRowUI(idx);
+});
+$("singleSetBox")?.addEventListener("keydown",e=>{
+  if(e.key!=="Enter" || !e.target.matches("[data-set-field]"))return;
+  e.preventDefault();syncCurrentSetInputs();saveState();e.target.blur();changeSessionEditing(false);
+});
 $("singleSetBox")?.addEventListener("click",e=>{
   if(e.target.closest("[data-done-set-editing]")){
     syncCurrentSetInputs();saveState();
-    if(document.activeElement?.matches?.("#inKg, #inReps"))document.activeElement.blur();
-    changeSessionEditing(false);
-    toast("Valori conservati");
+    if(document.activeElement?.matches?.("#session [data-set-field]"))document.activeElement.blur();
+    changeSessionEditing(false);toast("Valori conservati");return;
+  }
+  if(e.target.closest("[data-use-suggestion]")){
+    const s=activeSession();if(!s)return;
+    const it=s.items[state.activeExIndex];
+    const suggestion=suggestNextTarget(it.ex,it.target);if(!suggestion)return;
+    const value=suggestion.kgSuggested.toFixed(1).replace(".0","");
+    const idx=state.activeSetIndex;
+    const input=$("singleSetBox")?.querySelector(`[data-set-index="${idx}"][data-set-field="kg"]`);
+    if(input){input.value=value;it.sets[idx].kg=value;saveState();toast(`Proposti ${value} kg sulla serie ${idx+1}`);}
     return;
   }
   const btn=e.target.closest("[data-go-set]");if(btn)goToSet(Number(btn.dataset.goSet));
 });
+
 function nextExercise(){
   syncCurrentSetInputs();
   persistSessionProgress();
@@ -2210,10 +2249,10 @@ function renderDietPreview(){
     const foods=day.meals?.[key]||[], eaten=Boolean(consumed[key]);
     const card=document.createElement("section");
     card.className="mealCard"+(eaten?" isConsumed":"");
-    const list=foods.length?foods.map(f=>`<li><span>${escapeHTML(f.food)}</span><b>${escapeHTML(f.qty)} ${escapeHTML(f.unit)}</b></li>`).join(""):
+    const list=foods.length?foods.map((f,foodIndex)=>`<li class="dietFoodRow"><span>${escapeHTML(f.food)}</span><label class="foodPortion"><span class="srOnly">Quantità ${escapeHTML(f.food)}</span><input type="number" inputmode="decimal" min="0.01" step="any" data-food-portion="${foodIndex}" data-meal-key="${escapeHTML(key)}" value="${escapeHTML(f.qty)}" aria-label="Quantità ${escapeHTML(f.food)}"><span>${escapeHTML(f.unit)}</span></label></li>`).join(""):
       '<li class="mealEmpty">Nessun alimento pianificato</li>';
     const label=getMealLabel(diet,key);
-    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">${escapeHTML(mealHeading(diet,key))}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} ${escapeHTML(label)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul>`;
+    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">${escapeHTML(mealHeading(diet,key))}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} ${escapeHTML(label)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul><div class="mealCardActions"><button class="btn" type="button" data-open-meal-editor="${escapeHTML(key)}">Modifica pasto</button><button class="btn" type="button" data-copy-meal-tomorrow="${escapeHTML(key)}" ${foods.length?"":"disabled"}>Copia a domani</button></div>`;
     box.appendChild(card);
   }
 }
@@ -2268,9 +2307,34 @@ $("dietWeek")?.addEventListener("click",e=>{
   $("dietDaySelect").value=day.dataset.dietWeek;
   renderDietPreview(); renderDietWeek();
 });
+$("dietPreview")?.addEventListener("change",e=>{
+  const input=e.target.closest("[data-food-portion]");if(!input)return;
+  const d=getActiveDiet();if(!d)return;
+  const di=Number($("dietDaySelect").value),key=input.dataset.mealKey;
+  const item=d.week?.[di]?.meals?.[key]?.[Number(input.dataset.foodPortion)];
+  const quantity=Number(input.value);
+  if(!item || !Number.isFinite(quantity)||quantity<=0){toast("Inserisci una quantità maggiore di zero");if(item)input.value=item.qty;return;}
+  item.qty=quantity;saveState();renderDietWeek();toast("Porzione aggiornata");
+});
 $("dietPreview")?.addEventListener("click",e=>{
+  const edit=e.target.closest("[data-open-meal-editor]");
+  const duplicate=e.target.closest("[data-copy-meal-tomorrow]");
+  const d=getActiveDiet(),di=Number($("dietDaySelect").value);
+  if(edit && d){
+    state.ui.dietEditDayIndex=di;
+    state.ui.dietEditMeal=Number(edit.dataset.openMealEditor);
+    openDietEditor(d.id);return;
+  }
+  if(duplicate && d){
+    const key=duplicate.dataset.copyMealTomorrow,next=(di+1)%7;
+    const src=d.week?.[di]?.meals?.[key]||[];
+    if(!src.length)return;
+    const dest=d.week?.[next]?.meals?.[key]||[];
+    if(dest.length && !confirm(`Sostituire il pasto ${getMealLabel(d,key)} di ${["Lunedì","Martedì","Mercoledì","Giovedì","Venerdì","Sabato","Domenica"][next]}?`))return;
+    d.week[next].meals[key]=clone(src);saveState();renderDietWeek();toast("Pasto copiato a domani");return;
+  }
   const button=e.target.closest("[data-consume-meal]");if(!button)return;
-  const di=Number($("dietDaySelect").value),iso=dateForDietDay(di);
+  const iso=dateForDietDay(di);
   const meal=button.dataset.consumeMeal,diet=getActiveDiet();
   if(!diet?.week[di]?.meals?.[meal]?.length){toast("Prima aggiungi alimenti al pasto");return;}
   if(!state.consumed[iso])state.consumed[iso]={};
@@ -2361,37 +2425,53 @@ function openGrocery(){
   else renderGrocery();
 }
 function renderGrocery(){
-  const box=$("groceryItems"),summary=$("grocerySummary");
-  if(!box)return;
+  const box=$("groceryItems"),summary=$("grocerySummary");if(!box)return;
   box.replaceChildren();
   const rows=state.grocery?.rows||[];
   const context=state.grocery.context;
-  const count=rows.filter(r=>!r.bought && Math.max(0,r.qty-r.stock)>0).length;
+  const need=r=>Math.max(0,Math.round((finiteNumber(r.qty)-finiteNumber(r.stock))*100)/100);
+  const pending=rows.filter(r=>!r.bought && need(r)>0);
+  const purchased=rows.filter(r=>r.bought);
+  const showAll=Boolean(state.ui.groceryShowAll);
+  $("btnGroceryPending")?.classList.toggle("active",!showAll);
+  $("btnGroceryAll")?.classList.toggle("active",showAll);
+  $("btnGroceryPending")?.setAttribute("aria-pressed",String(!showAll));
+  $("btnGroceryAll")?.setAttribute("aria-pressed",String(showAll));
+  if($("groceryPendingLabel"))$("groceryPendingLabel").textContent=`Da acquistare (${pending.length})`;
+  if($("groceryAllLabel"))$("groceryAllLabel").textContent=`Tutti (${rows.length})`;
   const excludedCount=(state.grocery.excluded||[]).length;
   if($("btnGroceryRestore"))$("btnGroceryRestore").hidden=!excludedCount;
-  if(summary)summary.textContent=context?
-    `${count} da acquistare · ${rows.filter(r=>r.bought).length} spuntati · ${displayDate(context.start)} → ${displayDate(context.end)}`:
-    "Nessuna lista generata. Seleziona un periodo e premi Ricalcola.";
-  if(excludedCount)summary.textContent+=` · ${excludedCount} prodotti esclusi manualmente`;
-  if(context && (context.dietId!==state.activeDietId || context.start!==parseItalianDate($("groceryStart")?.value) || context.end!==parseItalianDate($("groceryEnd")?.value))){
-    summary.textContent+=" · Periodo o dieta cambiati: premi Ricalcola";
+  if(summary){summary.textContent=context?
+    `${pending.length} da acquistare · ${purchased.length} acquistati · ${displayDate(context.start)} – ${displayDate(context.end)}`:
+    "Nessuna lista generata";
+    if(excludedCount)summary.textContent+=` · ${excludedCount} esclusi`;
+    if(context && (context.dietId!==state.activeDietId || context.start!==parseItalianDate($("groceryStart")?.value) || context.end!==parseItalianDate($("groceryEnd")?.value))) summary.textContent+=" · Premi Ricalcola per aggiornare il periodo";
   }
-  if(!rows.length){box.textContent="Lista vuota. Crea una dieta o aggiungi un articolo manuale.";return;}
-  for(const cat of [...new Set(rows.map(r=>r.category||"Altro"))].sort()){
-    const heading=document.createElement("h3"); heading.className="groceryCategory"; heading.textContent=cat;
-    box.appendChild(heading);
-    for(const item of rows.filter(r=>(r.category||"Altro")===cat)){
-      const div=document.createElement("div");div.className="groceryItem"+(item.bought?" purchased":"");
-      const need=Math.max(0,Math.round((finiteNumber(item.qty)-finiteNumber(item.stock))*100)/100);
-      div.innerHTML=`<label class="groceryCheck"><input type="checkbox" data-grocery-check="${escapeHTML(item.id)}" ${item.bought?"checked":""} aria-label="Acquistato: ${escapeHTML(item.food)}"><span class="groceryName">${escapeHTML(item.food)}</span></label>
-        <div class="groceryFields"><span class="muted small">Previsti: ${escapeHTML(item.qty)} ${escapeHTML(item.unit)} · Da comprare: <b>${need} ${escapeHTML(item.unit)}</b>${item.stale?' · Fuori piano':''}${item.manual?' · Manuale':''}</span>
-        <label class="stockField">In casa <input inputmode="decimal" type="number" min="0" step="any" data-grocery-stock="${escapeHTML(item.id)}" value="${escapeHTML(item.stock||0)}" aria-label="Quantità già in casa di ${escapeHTML(item.food)}"></label>
-        <button class="iconBtn" data-grocery-edit="${escapeHTML(item.id)}">Modifica</button>
-        <button class="iconBtn danger" data-grocery-del="${escapeHTML(item.id)}">Elimina</button></div>`;
-      box.appendChild(div);
-    }
+  const available=showAll?rows:pending;
+  if(!available.length){box.innerHTML=`<div class="shoppingEmpty">${rows.length?"Tutto acquistato! ✓":"Nessun articolo. Aggiungi un prodotto o genera la lista dalla dieta."}</div>`;return;}
+  function appendProduct(item){
+    const div=document.createElement("div");div.className="groceryItem"+(item.bought?" purchased":"");
+    div.innerHTML=`<label class="groceryCheck"><input type="checkbox" data-grocery-check="${escapeHTML(item.id)}" ${item.bought?"checked":""} aria-label="Acquistato: ${escapeHTML(item.food)}"><span class="groceryName">${escapeHTML(item.food)}</span></label>
+      <div class="groceryFields"><span class="muted small">Da acquistare: <b>${need(item)} ${escapeHTML(item.unit)}</b> · Totale ${escapeHTML(item.qty)} ${escapeHTML(item.unit)}${item.stale?' · Fuori piano':''}${item.manual?' · Manuale':''}</span>
+      <label class="stockField">In casa <input inputmode="decimal" type="number" min="0" step="any" data-grocery-stock="${escapeHTML(item.id)}" value="${escapeHTML(item.stock||0)}" aria-label="Quantità già in casa di ${escapeHTML(item.food)}"></label>
+      <button class="iconBtn" data-grocery-edit="${escapeHTML(item.id)}">Modifica</button>
+      <button class="iconBtn danger" data-grocery-del="${escapeHTML(item.id)}">Elimina</button></div>`;
+    box.appendChild(div);
+  }
+  const active=available.filter(r=>!r.bought);
+  const categories=[...new Set(active.map(r=>r.category||"Altro"))].sort((a,b)=>a.localeCompare(b,"it"));
+  for(const category of categories){
+    const heading=document.createElement("h3");heading.className="groceryCategory";heading.textContent=category;box.appendChild(heading);
+    active.filter(r=>(r.category||"Altro")===category).forEach(appendProduct);
+  }
+  if(showAll && purchased.length){
+    const heading=document.createElement("h3");heading.className="groceryCategory purchasedHeading";heading.textContent=`Acquistati (${purchased.length})`;box.appendChild(heading);
+    purchased.forEach(appendProduct);
   }
 }
+$("btnGroceryPending")?.addEventListener("click",()=>{state.ui.groceryShowAll=false;saveState();renderGrocery();});
+$("btnGroceryAll")?.addEventListener("click",()=>{state.ui.groceryShowAll=true;saveState();renderGrocery();});
+
 function groceryItem(id){return state.grocery.rows.find(r=>r.id===id);}
 for(const id of ["groceryStart","groceryEnd"]){
   $(id)?.addEventListener("input",e=>{maskItalianDate(e.target);e.target.setCustomValidity("");});

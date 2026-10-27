@@ -24,7 +24,7 @@
       </div>
     </div>
 
-    <button class="btn headerSettings" data-view="settings" type="button" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z"/><path d="M10 2h4l.6 2.2q.9.3 1.6.9l2.2-.7 2 3.5-1.6 1.6q.2 1 .0 2l1.6 1.6-2 3.5-2.2-.7q-.7.6-1.6.9L14 20h-4l-.6-2.2q-.9-.3-1.6-.9l-2.2.7-2-3.5 1.6-1.6q-.2-1 0-2L3.6 9l2-3.5 2.2.7q.7-.6 1.6-.9Z" transform="translate(0 1) scale(1 .9)"/></svg></button>
+    <button class="btn headerSettings" data-view="settings" type="button" aria-label="Impostazioni" title="Impostazioni"><svg viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.9 2.7h4.2l.55 2.25c.47.15.92.35 1.33.59l2.02-1.19 3 3-1.19 2.02c.24.41.44.86.59 1.33l2.25.55v4.2l-2.25.55c-.15.47-.35.92-.59 1.33l1.19 2.02-3 3-2.02-1.19c-.41.24-.86.44-1.33.59l-.55 2.25H9.9l-.55-2.25c-.47-.15-.92-.35-1.33-.59L6 21.35l-3-3 1.19-2.02c-.24-.41-.44-.86-.59-1.33l-2.25-.55v-4.2l2.25-.55c.15-.47.35-.92.59-1.33L3 6.35l3-3 2.02 1.19c.41-.24.86-.44 1.33-.59z" transform="translate(1.2 1.2) scale(.9)"/><circle cx="12" cy="12" r="3.2"/></svg></button>
     <nav class="tabs">
       <button class="tab active" data-view="home">Home</button>
       <button class="tab" data-view="workout">Allenamento</button>
@@ -379,7 +379,7 @@
             <button class="btn primary" id="btnGroceryUpdate">Ricalcola lista</button>
             <button class="btn" id="btnGroceryRestore" hidden>Ripristina esclusi</button>
           </div>
-          <div class="tip small">Date in formato GG/MM/AAAA. Il ricalcolo aggiorna le quantità e conserva articoli manuali, spunte e scorte. Gli articoli eliminati manualmente rimangono esclusi fino al ripristino; quelli fuori piano già acquistati restano segnalati.</div>
+          <div class="shoppingFilters" role="group" aria-label="Filtra la lista della spesa"><button class="shoppingFilter active" type="button" id="btnGroceryPending" aria-pressed="true"><span id="groceryPendingLabel">Da acquistare</span></button><button class="shoppingFilter" type="button" id="btnGroceryAll" aria-pressed="false"><span id="groceryAllLabel">Tutti</span></button></div>
           <div id="grocerySummary" class="grocerySummary" aria-live="polite"></div>
           <div id="groceryItems" class="list"></div>
         </div>
@@ -474,7 +474,7 @@
               <input id="fileImport" type="file" accept="application/json" hidden />
             </label>
           </div>
-          <p class="muted small">Versione Fit Planner v40 · dati locali su questo dispositivo</p>
+          <p class="muted small">Versione Fit Planner v41 · dati locali su questo dispositivo</p>
         </div>
       </div>
     </section>
