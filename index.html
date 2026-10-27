@@ -23,15 +23,18 @@
       </div>
     </div>
 
+    <button class="btn headerSettings" data-view="settings" type="button" aria-label="Apri impostazioni" >⚙ Impostazioni</button>
     <nav class="tabs">
       <button class="tab active" data-view="home">Home</button>
       <button class="tab" data-view="workout">Allenamento</button>
       <button class="tab" data-view="diet">Dieta</button>
+      <button class="tab" data-view="grocery">Spesa</button>
       <button class="tab" data-view="progress">Progressi</button>
-      <button class="tab" data-view="settings">Impostazioni</button>
     </nav>
   </header>
 
+  <div id="storageWarning" class="storageWarning" role="alert" hidden></div>
+  <div id="updateBanner" class="updateBanner" hidden>Nuova versione disponibile. <button class="btn primary" id="btnReloadApp">Aggiorna app</button></div>
   <main class="wrap">
 
     <!-- HOME -->
@@ -51,6 +54,11 @@
             <button class="btn big" id="btnTodayMeals">Pasti di oggi</button>
           </div>
 
+          <div class="homeHighlights">
+            <button class="quickTile" id="btnHomeMeals" data-jump="diet"><b>🥗 Alimentazione</b><span id="homeMeals">—</span></button>
+            <button class="quickTile" data-jump="grocery"><b>🛒 Spesa</b><span id="homeGrocery">—</span></button>
+            <button class="quickTile" data-jump="progress"><b>📈 Progressi</b><span id="homeProgress">—</span></button>
+          </div>
           <div class="heroMini">
             <div class="mini">
               <div class="miniLabel">Sessioni salvate</div>
@@ -252,7 +260,10 @@
             </label>
           </div>
 
+          <div class="sectionTitle">Settimana <span class="muted small">Tocca un giorno</span></div>
+          <div class="weekStrip" id="dietWeek"></div>
           <div id="dietPreview" class="list"></div>
+          <div id="dietNutrition" class="tip small" aria-live="polite"></div>
         </div>
 
         <div class="card">
@@ -318,6 +329,11 @@
             </label>
 
             <button class="btn" id="btnCopyDayToAll">Copia giorno su tutti</button>
+            <label class="field"><span>Destinazione</span><select id="copyDayTarget">
+              <option value="0">Lunedì</option><option value="1">Martedì</option><option value="2">Mercoledì</option>
+              <option value="3">Giovedì</option><option value="4">Venerdì</option><option value="5">Sabato</option><option value="6">Domenica</option>
+            </select></label>
+            <button class="btn" id="btnCopyDayToDay">Copia su giorno</button>
             <button class="btn" id="btnCopyMealToAllDays">Copia pasto su tutti</button>
           </div>
         </div>
@@ -345,7 +361,47 @@
             <button class="btn primary" id="btnAddFood">Aggiungi</button>
           </div>
 
+          <details class="nutritionDetails"><summary>Dati nutrizionali (facoltativi, da etichetta)</summary>
+            <p class="muted small">Inserisci tutti e quattro i valori e una fonte. Per g/ml: valori per 100 g/100 ml; per pezzi: per pezzo. Altrimenti non calcoleremo totali.</p>
+            <div class="nutritionInputs">
+              <label class="field"><span>kcal</span><input id="nutrient_kcal" type="number" min="0" step="any"></label>
+              <label class="field"><span>Proteine</span><input id="nutrient_p" type="number" min="0" step="any"></label>
+              <label class="field"><span>Carboidrati</span><input id="nutrient_c" type="number" min="0" step="any"></label>
+              <label class="field"><span>Grassi</span><input id="nutrient_f" type="number" min="0" step="any"></label>
+            </div>
+            <label class="field"><span>Fonte (es. confezione / etichetta)</span><input id="nutrientSource" placeholder="Fonte dei valori"></label>
+          </details>
           <div id="dietFoodsList" class="list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SPESA -->
+    <section class="view hidden" id="view-grocery">
+      <div class="grid">
+        <div class="card">
+          <div class="cardHead"><div><h2>Lista della spesa</h2><p class="muted small">Generata dalla dieta attiva. Le modifiche manuali e le spunte restano salvate.</p></div></div>
+          <div class="row groceryDates">
+            <label class="field"><span>Dal</span><input type="date" id="groceryStart"></label>
+            <label class="field"><span>Al</span><input type="date" id="groceryEnd"></label>
+            <button class="btn primary" id="btnGroceryUpdate">Ricalcola lista</button>
+            <button class="btn" id="btnGroceryRestore" hidden>Ripristina esclusi</button>
+          </div>
+          <div class="tip small">Il ricalcolo aggiorna le quantità e conserva articoli manuali, spunte e scorte. Gli articoli eliminati manualmente rimangono esclusi fino al ripristino; quelli fuori piano già acquistati restano segnalati.</div>
+          <div id="grocerySummary" class="grocerySummary" aria-live="polite"></div>
+          <div id="groceryItems" class="list"></div>
+        </div>
+        <div class="card">
+          <h2>Aggiungi o modifica</h2>
+          <div class="row">
+            <label class="field grow"><span>Articolo</span><input id="groceryFood" placeholder="Es. Banane"></label>
+            <label class="field"><span>Quantità</span><input id="groceryQty" type="number" min="0" step="any" value="1"></label>
+            <label class="field"><span>Unità</span><select id="groceryUnit"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option><option value="pz">pz</option></select></label>
+            <button class="btn primary" id="btnGroceryManual">Aggiungi articolo</button>
+          </div>
+          <h2 style="margin-top:20px">Condividi</h2>
+          <div class="row"><button class="btn" id="btnGroceryShare">Condividi lista</button><button class="btn" id="btnGroceryCopy">Copia testo</button></div>
+          <textarea id="groceryShareFallback" aria-label="Testo della lista da copiare" readonly hidden></textarea>
         </div>
       </div>
     </section>
@@ -418,13 +474,15 @@
         </div>
 
         <div class="card">
-          <h2>Backup</h2>
+          <h2>Backup e sicurezza</h2>
+          <p class="muted small">Esporta una copia prima di importare file o installare aggiornamenti. L'importazione richiede conferma e sostituisce i dati correnti.</p>
           <div class="row">
             <button class="btn" id="btnExport">Export JSON</button>
             <label class="btn file">Import JSON
               <input id="fileImport" type="file" accept="application/json" hidden />
             </label>
           </div>
+          <p class="muted small">Versione Fit Planner v35 · dati locali su questo dispositivo</p>
         </div>
       </div>
     </section>
@@ -443,11 +501,11 @@
     <button class="tab navbtn" data-view="diet" aria-label="Dieta">
       <span class="navIcon">🥗</span><span class="navLabel">Dieta</span>
     </button>
+    <button class="tab navbtn" data-view="grocery" aria-label="Spesa">
+      <span class="navIcon">🛒</span><span class="navLabel">Spesa</span>
+    </button>
     <button class="tab navbtn" data-view="progress" aria-label="Progressi">
       <span class="navIcon">📈</span><span class="navLabel">Progressi</span>
-    </button>
-    <button class="tab navbtn" data-view="settings" aria-label="Impostazioni">
-      <span class="navIcon">⚙️</span><span class="navLabel">Impostazioni</span>
     </button>
   </nav>
 

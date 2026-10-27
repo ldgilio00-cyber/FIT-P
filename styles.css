@@ -490,3 +490,80 @@ body.sheet-open .wrap{filter: blur(2px); opacity:.9}
     border-color: rgba(96,165,250,.25);
   }
 }
+
+/* Fit Planner v31: interfaccia mobile ottimizzata */
+:root{--radius:22px;--shadow:0 10px 34px rgba(14,29,55,.07)}
+html,body{height:100%;height:100dvh}
+body{overflow:hidden}
+.wrap{min-height:0;overflow:hidden}
+.view{overscroll-behavior:contain;scrollbar-width:thin;padding:18px 16px calc(110px + env(safe-area-inset-bottom))}
+.card{padding:18px;box-shadow:var(--shadow)}
+.hero{background:linear-gradient(145deg,rgba(37,99,235,.14),rgba(255,255,255,.96) 75%)}
+.heroTitle{text-transform:uppercase;letter-spacing:.12em;font-size:12px}
+.heroSub{font-size:clamp(20px,5vw,28px);line-height:1.22}
+.btn,.iconBtn{min-height:44px;touch-action:manipulation}
+.field input,.field select{min-height:44px;min-width:0;width:100%}
+.field{max-width:100%;min-width:0}
+.grow{flex:1 1 190px}
+.topbar .brand{margin-bottom:4px}
+.headerSettings{position:absolute;top:calc(12px + env(safe-area-inset-top));right:14px;font-size:13px;min-height:38px;padding:8px}
+.topbar .brandText{padding-right:115px}
+.tabs{margin-top:10px}
+.homeHighlights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:16px}
+.quickTile{background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:15px;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:8px;padding:13px;min-width:0;text-align:left;min-height:92px;cursor:pointer}
+.quickTile b{font-size:12px}.quickTile span{font-size:12px;color:var(--muted);line-height:1.35}
+.sectionTitle{font-size:14px;font-weight:850;margin:18px 0 8px}
+.weekStrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.weekDay{border:1px solid var(--line);border-radius:13px;background:var(--surface2);color:var(--text);min-height:54px;padding:6px;font:inherit;font-size:12px;font-weight:700}
+.weekDay.selected{background:var(--primarySoft);border-color:var(--primary)}
+.nutritionDetails{border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:14px}
+.nutritionDetails summary{cursor:pointer;font-weight:750}
+.nutritionInputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.groceryDates .field{flex:1 1 120px}.groceryDates>.btn{align-self:flex-end;flex:1 0 140px}
+.grocerySummary{font-weight:750;margin:16px 0 6px}
+.groceryCategory{font-size:13px;color:var(--muted);margin:16px 0 0;text-transform:uppercase;letter-spacing:.06em}
+.groceryItem{border:1px solid var(--line);border-radius:17px;padding:13px;background:var(--surface2);display:flex;flex-direction:column;gap:10px}
+.groceryItem.purchased{opacity:.73}.groceryItem.purchased .groceryName{text-decoration:line-through}
+.groceryCheck{display:flex;align-items:center;gap:12px;font-weight:800;min-height:32px}
+.groceryCheck input{width:23px;height:23px;accent-color:var(--primary);flex:0 0 23px}
+.groceryFields{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.groceryFields>.muted{flex:1 0 100%}
+.stockField{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.stockField input{width:88px;min-height:40px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 8px;color:var(--text);font-size:16px}
+#groceryShareFallback{display:block;width:100%;margin-top:10px;min-height:120px}
+#groceryShareFallback[hidden]{display:none}
+.storageWarning,.updateBanner{padding:12px 16px;background:#fef3c7;color:#713f12;font-size:13px;z-index:35}
+.storageWarning[hidden],.updateBanner[hidden]{display:none}
+.updateBanner{display:flex;align-items:center;justify-content:center;gap:14px}
+.bottomnav{position:relative;z-index:25;box-shadow:0 -4px 20px rgba(15,23,42,.06)}
+.navbtn{min-width:0;padding:9px 2px;gap:5px}.navbtn .navLabel{font-size:10px}
+#session .sessionBottom{padding-bottom:calc(12px + env(safe-area-inset-bottom));}
+#session .sessionBottom .btn{font-size:12px;padding:12px 6px;line-height:1.25}
+#session .sessionBottom .btn.primary{flex:1.5}
+#session .singleGrid{grid-template-columns:1fr 1fr}
+#session .singleGrid input{font-size:22px;font-weight:800;text-align:center}
+#session .sessionBody{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
+#session .timerCard{margin:10px 14px;padding:12px}
+#session .timerTime{font-size:40px}
+@media(max-width:440px){
+ .view{padding:12px 12px calc(92px + env(safe-area-inset-bottom))}
+ .card{padding:14px}
+ .heroActions .btn{flex:1;min-width:0}
+ .homeHighlights{grid-template-columns:1fr 1fr}
+ .homeHighlights .quickTile:last-child{grid-column:span 2;min-height:65px}
+ .cardHead{flex-direction:column;align-items:stretch}
+ .cardHead .row{width:100%}
+ .row>.field[style]{min-width:0!important;flex:1 1 170px!important}
+ .row>.btn{flex:1 1 auto}
+ .sessionTop{padding:8px;gap:5px}
+ .sessionTop .btn{padding:9px 7px;font-size:13px}
+ .sessionNav .btn{padding:10px 8px}
+}
+@media(prefers-color-scheme:dark){
+ .hero{background:linear-gradient(145deg,rgba(37,99,235,.22),rgba(17,24,39,.96) 80%)}
+ .iconBtn{background:var(--surface2);color:var(--text)}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}}
+
+#session .sessionBottom{bottom:var(--keyboard-inset,0px)}
+#session .sessionBody{scroll-padding-bottom:110px}
+#groceryShareFallback:focus{outline:3px solid var(--primarySoft)}
