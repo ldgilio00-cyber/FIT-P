@@ -914,3 +914,52 @@ body{
   .seriesNavigation{grid-template-columns:1fr 1fr;}
 }
 .mealRenameHint{margin-top:6px;}
+
+
+/* ======================================================================
+   Fit Planner v38 · refined header, branding and mobile shell
+   ====================================================================== */
+.brand{align-items:center;}
+.brandMark{width:46px;height:46px;display:block;flex:0 0 46px;filter:drop-shadow(0 10px 18px rgba(43,64,146,.16));}
+.brandText .title{letter-spacing:-.045em;}
+.brandText .subtitle{font-size:11.5px;}
+.headerSettings{
+  position:absolute;right:18px;top:calc(15px + env(safe-area-inset-top));
+  min-height:42px;min-width:42px;width:auto;padding:0 12px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:color-mix(in srgb,var(--card) 96%, transparent);
+  box-shadow:0 6px 18px rgba(31,43,79,.08);
+}
+.settingsIcon{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;}
+.settingsIcon svg{width:18px;height:18px;display:block;}
+.settingsLabel{font-size:12px;font-weight:700;letter-spacing:-.01em;}
+.hero{border-radius:28px;}
+.homeHighlights .quickTile,.heroMini .mini,.item,.kpi,.tip{box-shadow:0 4px 14px rgba(17,24,39,.03);}
+.bottomnav{max-width:760px;margin:0 auto;left:0;right:0;}
+.bottomnav::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent, rgba(101,113,136,.23), transparent);}
+.mealCard,.groceryItem{box-shadow:0 6px 16px rgba(16,24,40,.035);}
+#view-diet .card, #view-grocery .card, #view-home .card{overflow:hidden;}
+@media (max-width:760px){
+  .topbar{padding:calc(13px + env(safe-area-inset-top)) 16px 10px;}
+  .brand{margin-bottom:4px;}
+  .brandMark{width:42px;height:42px;flex-basis:42px;}
+  .brandText .title{font-size:20px;padding-right:76px;}
+  .brandText .subtitle{font-size:11px;padding-right:76px;}
+  .headerSettings{right:14px;top:calc(12px + env(safe-area-inset-top));padding:0;min-width:40px;width:40px;height:40px;}
+  .settingsLabel{display:none;}
+  .view{padding-top:14px;}
+  .hero{padding:19px 17px 17px;border-radius:26px;}
+  .heroSub{font-size:25px;}
+  .card{padding:15px;border-radius:22px;}
+  .cardHead{gap:8px;}
+  .item,.groceryItem,.mealCard{border-radius:18px;}
+  .bottomnav{padding:8px 10px calc(10px + env(safe-area-inset-bottom));border-top-left-radius:24px;border-top-right-radius:24px;}
+}
+@media (min-width:761px){
+  .headerSettings{padding-right:14px;}
+}
+@media (prefers-color-scheme:dark){
+  .headerSettings{background:color-mix(in srgb,var(--card) 88%, transparent);box-shadow:none;}
+  .brandMark{filter:drop-shadow(0 10px 18px rgba(0,0,0,.18));}
+  .bottomnav::before{background:linear-gradient(90deg,transparent, rgba(172,182,203,.18), transparent);}
+}

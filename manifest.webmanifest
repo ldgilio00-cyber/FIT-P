@@ -1,6 +1,7 @@
 {
   "name": "Fit Planner",
   "short_name": "FitPlanner",
+  "description": "Planner personale per allenamento, alimentazione e spesa, ottimizzato per smartphone.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
