@@ -74,6 +74,10 @@
         </div>
 
         <div class="card">
+          <div class="cardHead"><h2>Il tuo calendario</h2><button class="btn primary" data-jump="calendar" type="button">Apri calendario</button></div>
+          <p class="muted small">Allenamenti conclusi, sessioni in corso e pasti registrati per data.</p>
+        </div>
+        <div class="card">
           <h2>Azioni rapide</h2>
           <div class="actions">
             <button class="btn" data-jump="workout">Scheda</button>
@@ -82,6 +86,17 @@
             <button class="btn" id="btnBackup">Backup</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- CALENDARIO -->
+    <section class="view hidden" id="view-calendar">
+      <div class="card calendarShell">
+        <div class="cardHead"><div><div class="eyebrow">DIARIO PERSONALE</div><h2>Calendario</h2></div><button class="btn" type="button" data-jump="home">← Home</button></div>
+        <div class="calendarToolbar"><button class="btn" type="button" id="calendarPrev" aria-label="Mese precedente">‹</button><h3 id="calendarTitle" aria-live="polite"></h3><button class="btn" type="button" id="calendarNext" aria-label="Mese successivo">›</button></div>
+        <div class="calendarLegend"><span><b class="legendDot training"></b> Allenamento</span><span><b class="legendDot food"></b> Pasti consumati</span></div>
+        <div class="calendarGrid" id="calendarGrid" role="group" aria-label="Giorni del mese"></div>
+        <div class="calendarDetails" id="calendarDetails" aria-live="polite"></div>
       </div>
     </section>
 
@@ -256,6 +271,7 @@
           <div class="weekStrip" id="dietWeek"></div>
           <div id="dietPreview" class="list"></div>
           <div id="dietNutrition" class="tip small" aria-live="polite"></div>
+          <div class="favoritesBar"><h3>Pasti preferiti</h3><p class="muted small">Salva un pasto e riutilizzalo nei giorni successivi.</p><div id="mealFavorites" class="favoriteList"></div></div>
         </div>
 
         <div class="card">
@@ -383,6 +399,16 @@
           <div id="grocerySummary" class="grocerySummary" aria-live="polite"></div>
           <div id="groceryItems" class="list"></div>
         </div>
+        <div class="card" id="pantryCard">
+          <div class="cardHead"><div><h2>Dispensa</h2><p class="muted small">Le quantità disponibili vengono sottratte automaticamente dalla lista.</p></div></div>
+          <div class="row pantryForm">
+            <label class="field grow"><span>Alimento</span><input id="pantryFood" placeholder="Es. Riso" autocomplete="off"></label>
+            <label class="field"><span>Quantità disponibile</span><input id="pantryQty" type="number" min="0" step="any" inputmode="decimal" value="1"></label>
+            <label class="field"><span>Unità</span><select id="pantryUnit"><option value="g">g</option><option value="kg">kg</option><option value="ml">ml</option><option value="l">l</option><option value="pz">pz</option></select></label>
+            <button class="btn primary" type="button" id="pantrySave">Salva in dispensa</button>
+          </div>
+          <div id="pantryList" class="pantryList"></div>
+        </div>
         <div class="card">
           <h2>Aggiungi o modifica</h2>
           <div class="row">
@@ -405,6 +431,7 @@
           <div class="eyebrow">IL TUO PERCORSO</div>
           <h2>Progressi</h2>
           <p class="muted">Allenamenti, carichi e record in un unico posto.</p>
+          <button type="button" class="btn" data-jump="calendar">Apri calendario mensile</button>
         </div>
 
         <div id="progressKpis" class="progressKpis" aria-label="Riepilogo allenamenti"></div>
@@ -483,13 +510,18 @@
         <div class="card">
           <h2>Backup e sicurezza</h2>
           <p class="muted small">Esporta una copia prima di importare file o installare aggiornamenti. L'importazione richiede conferma e sostituisce i dati correnti.</p>
+          <div class="backupStatus" id="backupStatus" aria-live="polite"></div>
+          <div class="row">
+            <button class="btn" id="btnIntegrityCheck" type="button">Controlla integrità</button>
+            <button class="btn" id="btnPreImportRestore" type="button" hidden>Recupera dati precedenti all'importazione</button>
+          </div>
           <div class="row">
             <button class="btn" id="btnExport">Export JSON</button>
             <label class="btn file">Import JSON
               <input id="fileImport" type="file" accept="application/json" hidden />
             </label>
           </div>
-          <p class="muted small">Versione Fit Planner v42 · dati locali su questo dispositivo</p>
+          <p class="muted small">Versione Fit Planner v43 · dati locali su questo dispositivo</p>
         </div>
       </div>
     </section>

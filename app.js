@@ -222,6 +222,9 @@ const DEFAULT = {
 
   consumed: {},
   grocery: { rows: [], context: null },
+  pantry: [],
+  mealFavorites: [],
+  meta: {lastExportStartedAt:null},
   ui: {
     planEditId: null, planEditDayId: null,
     dietEditId: null, dietEditDayIndex: 0, dietEditMeal: 1,
@@ -764,7 +767,9 @@ function setView(view){
   setAppBar(view);
 
   if(view==="grocery") openGrocery();
-  if(view==="diet") {renderDietPreview(); renderDietWeek();}
+  if(view==="calendar") renderCalendar();
+  if(view==="settings") renderBackupStatus();
+  if(view==="diet") {renderDietPreview(); renderDietWeek();renderMealFavorites();}
   if(view==="home") homeRefresh();
   if(view==="progress"){
     renderHistory();
@@ -1238,10 +1243,32 @@ function updateSessionRowUI(index){
   if(heading)heading.textContent=`Serie ${state.activeSetIndex+1} di ${it.sets.length}`;
   const count=body?.querySelector("[data-sets-completed]");
   if(count)count.textContent=`${it.sets.filter(setRowIsDone).length}/${it.sets.length} completate`;
+  const fill=body?.querySelector(".quickSetFill");if(fill)fill.style.width=`${it.sets.length?Math.round(it.sets.filter(setRowIsDone).length/it.sets.length*100):0}%`;
+  const counter=body?.querySelector(".quickSetTools span");if(counter)counter.textContent=`${it.sets.filter(setRowIsDone).length}/${it.sets.length} serie`;
   if($("btnPrevSet"))$("btnPrevSet").disabled=state.activeSetIndex===0;
   if($("btnNextSet"))$("btnNextSet").disabled=state.activeSetIndex===it.sets.length-1;
 }
 
+let lastQuickSet=null;
+function quickCompleteSet(index){
+ const session=activeSession(),item=session?.items?.[state.activeExIndex],row=item?.sets?.[index];if(!row)return;
+ syncCurrentSetInputs();
+ const previous=lastExerciseSets(item.ex)?.[index]||{};
+ const reps=String(row.reps??"").trim()||String(previous.reps??"").trim();
+ if(!Number.isInteger(Number(reps))||Number(reps)<=0){toast("Inserisci le ripetizioni prima di completare");return;}
+ const kg=String(row.kg??"").trim()||String(previous.kg??"").trim();
+ if(kg && (!Number.isFinite(toNum(kg))||toNum(kg)<0)){toast("Carico non valido");return;}
+ lastQuickSet={sessionId:session.id,exIndex:state.activeExIndex,setIndex:index,before:clone(row)};
+ row.reps=reps;row.kg=kg;state.activeSetIndex=index;
+ persistSessionProgress();saveState();renderSession();toast(`Serie ${index+1} completata`);
+}
+function undoQuickSet(){
+ const record=lastQuickSet,s=activeSession();
+ if(!record||!s||record.sessionId!==s.id){toast("Nessuna operazione da annullare");return;}
+ const target=s.items?.[record.exIndex]?.sets?.[record.setIndex];if(!target){lastQuickSet=null;return;}
+ Object.assign(target,record.before);state.activeExIndex=record.exIndex;state.activeSetIndex=record.setIndex;
+ lastQuickSet=null;persistSessionProgress();saveState();renderSession();toast("Ultima serie ripristinata");
+}
 function persistSessionProgress(){
   const s = activeSession(); if(!s) return;
   s.progressExIndex = state.activeExIndex;
@@ -1260,16 +1287,17 @@ function renderSingleSet(){
     const prevText=(fmt(was.kg)||fmt(was.reps))?`Ultima: ${escapeHTML(fmt(was.kg)||"—")} kg × ${escapeHTML(fmt(was.reps)||"—")}`:"";
     const hintKg=(n===0&&sug?.kgSuggested!=null)?String(sug.kgSuggested.toFixed(1)).replace(/\.0$/,''):fmt(was.kg);
     return `<div class="seriesTableRow ${n===idx?"active":""} ${setRowIsDone(set)?"done":""}" data-set-row="${n}">
-      <div class="seriesIndex"><b>${n+1}</b><span class="seriesStatus">${setRowIsDone(set)?"✓":"○"}</span></div>
+      <button class="seriesIndex" type="button" data-go-set="${n}" aria-label="Seleziona serie ${n+1}"><b>${n+1}</b><span class="seriesStatus">${setRowIsDone(set)?"✓":"○"}</span></button>
       <label class="seriesCell"><span class="srOnly">Kg serie ${n+1}</span><input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="done" data-set-index="${n}" data-set-field="kg" value="${escapeHTML(set.kg)}" placeholder="${escapeHTML(hintKg||"Kg")}" aria-label="Kg serie ${n+1}"></label>
       <label class="seriesCell"><span class="srOnly">Ripetizioni serie ${n+1}</span><input type="text" inputmode="numeric" autocomplete="off" enterkeyhint="done" data-set-index="${n}" data-set-field="reps" value="${escapeHTML(set.reps)}" placeholder="${escapeHTML(fmt(was.reps)||"Rip.")}" aria-label="Ripetizioni serie ${n+1}"></label>
-      <button class="seriesRowButton" type="button" data-go-set="${n}" aria-label="Seleziona serie ${n+1}">${n===idx?'●':'›'}</button>
+      <button class="seriesRowButton" type="button" data-quick-set="${n}" aria-label="Completa rapidamente serie ${n+1}">✓</button>
       ${prevText?`<div class="seriesPrevious">${prevText}</div>`:""}
     </div>`;
   }).join("");
   $("singleSetBox").innerHTML=`<div class="singleCard setsTableCard">
     <div class="singleTop"><div><div class="singleTitle" data-series-heading>Serie ${idx+1} di ${it.sets.length}</div><small class="muted" data-sets-completed>${completed}/${it.sets.length} completate</small></div><div class="badge">${s.closed?"CHIUSA":"ATTIVA"}</div></div>
-    <div class="setEditingTools"><span>Modifica i valori delle serie</span><button type="button" class="btn" data-done-set-editing>✓ Fine</button></div>
+    <div class="setEditingTools"><span>Inserisci i valori e tocca ✓ per completare rapidamente.</span><button type="button" class="btn" data-done-set-editing>✓ Fine</button></div>
+    <div class="quickSetTools"><div class="quickSetTrack"><div class="quickSetFill" style="width:${it.sets.length?Math.round(completed/it.sets.length*100):0}%"></div></div><span>${completed}/${it.sets.length} serie</span><button class="btn" type="button" data-undo-quick ${lastQuickSet?.sessionId===s.id?"":"disabled"}>Annulla</button></div>
     <div class="seriesTableHeader"><span>SERIE</span><span>KG</span><span>RIP.</span><span></span></div>
     <div class="seriesTable">${rows}</div>
     <div class="singleTarget">Obiettivo: ${escapeHTML(it.target.repMin)}–${escapeHTML(it.target.repMax)} rip.</div>
@@ -1337,6 +1365,7 @@ function saveSetAndAutoTimer(){
   if(String(st.kg).trim() && (!Number.isFinite(toNum(st.kg)) || toNum(st.kg)<0)){
     toast("Controlla il carico in kg"); return;
   }
+  lastQuickSet=null;
   saveState();
   timerAutoFromExercise();
   if(idx < it.sets.length-1){
@@ -1378,6 +1407,7 @@ $("singleSetBox")?.addEventListener("input",e=>{
   item.sets[idx][field]=input.value;
   state.activeSetIndex=idx;
   persistSessionProgress();
+  lastQuickSet=null;
   saveState(); // ogni input e' una bozza persistente; nessun valore viene inventato
   updateSessionRowUI(idx);
 });
@@ -1386,6 +1416,8 @@ $("singleSetBox")?.addEventListener("keydown",e=>{
   e.preventDefault();syncCurrentSetInputs();saveState();e.target.blur();changeSessionEditing(false);
 });
 $("singleSetBox")?.addEventListener("click",e=>{
+  const quick=e.target.closest("[data-quick-set]");if(quick){quickCompleteSet(Number(quick.dataset.quickSet));return;}
+  if(e.target.closest("[data-undo-quick]")){undoQuickSet();return;}
   if(e.target.closest("[data-done-set-editing]")){
     syncCurrentSetInputs();saveState();
     if(document.activeElement?.matches?.("#session [data-set-field]"))document.activeElement.blur();
@@ -1405,6 +1437,7 @@ $("singleSetBox")?.addEventListener("click",e=>{
 });
 
 function nextExercise(){
+  lastQuickSet=null;
   syncCurrentSetInputs();
   persistSessionProgress();
   const s=activeSession(); if(!s) return;
@@ -1419,6 +1452,7 @@ function nextExercise(){
   } else toast("Ultimo esercizio");
 }
 function prevExercise(){
+  lastQuickSet=null;
   syncCurrentSetInputs();
   persistSessionProgress();
   const s=activeSession(); if(!s) return;
@@ -2194,12 +2228,76 @@ function renderDietPreview(){
     const list=foods.length?foods.map((f,foodIndex)=>`<li class="dietFoodRow"><span>${escapeHTML(f.food)}</span><label class="foodPortion"><span class="srOnly">Quantità ${escapeHTML(f.food)}</span><input type="number" inputmode="decimal" min="0.01" step="any" data-food-portion="${foodIndex}" data-meal-key="${escapeHTML(key)}" value="${escapeHTML(f.qty)}" aria-label="Quantità ${escapeHTML(f.food)}"><span>${escapeHTML(f.unit)}</span></label></li>`).join(""):
       '<li class="mealEmpty">Nessun alimento pianificato</li>';
     const label=getMealLabel(diet,key);
-    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">${escapeHTML(mealHeading(diet,key))}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} ${escapeHTML(label)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul><div class="mealCardActions"><button class="btn" type="button" data-open-meal-editor="${escapeHTML(key)}">Modifica pasto</button><button class="btn" type="button" data-copy-meal-tomorrow="${escapeHTML(key)}" ${foods.length?"":"disabled"}>Copia a domani</button></div>`;
+    card.innerHTML=`<div class="mealCardTop"><div><div class="mealNumber">${escapeHTML(mealHeading(diet,key))}</div><div class="mealStatus">${foods.length} ${foods.length===1?"alimento":"alimenti"}</div></div><button class="mealToggle ${eaten?"selected":""}" type="button" data-consume-meal="${escapeHTML(key)}" ${foods.length?"":"disabled"} aria-pressed="${eaten}" aria-label="${eaten?"Annulla consumato":"Segna consumato"} ${escapeHTML(label)}"><span class="mealToggleIcon">${eaten?"✓":"○"}</span><span>${eaten?"Consumato":"Segna consumato"}</span></button></div><ul class="mealFoods">${list}</ul><div class="mealCardActions"><button class="btn" type="button" data-open-meal-editor="${escapeHTML(key)}">Modifica pasto</button><button class="btn" type="button" data-copy-meal-tomorrow="${escapeHTML(key)}" ${foods.length?"":"disabled"}>Copia a domani</button><button class="btn" type="button" data-meal-favorite="${escapeHTML(key)}" ${foods.length?"":"disabled"}>☆ Preferito</button></div>`;
     box.appendChild(card);
   }
 }
 
 $("dietDaySelect")?.addEventListener("change",renderDietPreview);
+
+/* ---------------- Calendario: date locali, nessuna modifica ai dati storici ---------------- */
+let calendarCursor = (()=>{const d=new Date();return new Date(d.getFullYear(),d.getMonth(),1,12)})();
+let calendarSelected = todayISO();
+function renderCalendar(){
+  const grid=$("calendarGrid"),details=$("calendarDetails"),title=$("calendarTitle");
+  if(!grid||!details||!title)return;
+  const year=calendarCursor.getFullYear(),month=calendarCursor.getMonth();
+  title.textContent=calendarCursor.toLocaleDateString("it-IT",{month:"long",year:"numeric"});
+  const firstDay=(new Date(year,month,1,12).getDay()+6)%7;
+  const days=new Date(year,month+1,0,12).getDate();
+  grid.replaceChildren();
+  ["L","M","M","G","V","S","D"].forEach(label=>{const el=document.createElement("span");el.className="calendarWeekday";el.textContent=label;grid.appendChild(el);});
+  for(let n=0;n<firstDay;n++){const spacer=document.createElement("span");spacer.className="calendarSpacer";grid.appendChild(spacer);}
+  for(let day=1;day<=days;day++){
+    const iso=localISO(new Date(year,month,day,12));
+    const sessions=state.sessions.filter(s=>s.date===iso);
+    const meals=Object.values(state.consumed[iso]||{}).some(x=>Object.values(x||{}).some(Boolean));
+    const b=document.createElement("button");b.type="button";b.className="calendarDay"+(iso===calendarSelected?" selected":"")+(iso===todayISO()?" today":"");b.dataset.calendarDate=iso;
+    b.setAttribute("aria-label",`${displayDate(iso)}${sessions.length?`, ${sessions.length} allenamenti`:""}${meals?", pasti registrati":""}`);
+    b.innerHTML=`<strong>${day}</strong><span class="calendarMarks">${sessions.length?'<i class="training"></i>':""}${meals?'<i class="food"></i>':""}</span>`;
+    grid.appendChild(b);
+  }
+  const sessions=state.sessions.filter(s=>s.date===calendarSelected);
+  const logged=state.consumed[calendarSelected]||{};
+  const mealSummaries=[];
+  for(const diet of state.diets){
+    const eaten=Object.entries(logged[diet.id]||{}).filter(([,v])=>Boolean(v)).map(([key])=>getMealLabel(diet,key));
+    if(eaten.length)mealSummaries.push(`${diet.name}: ${eaten.join(", ")}`);
+  }
+  const di=(weekdayOfISO(calendarSelected)+6)%7;
+  const plan=getActivePlan(),planned=getPlanDayForJsDay(plan,weekdayOfISO(calendarSelected));
+  details.innerHTML=`<h3>${escapeHTML(displayDate(calendarSelected))}</h3><p class="muted small">${planned?`Scheda prevista: ${escapeHTML(planned.name)}`:"Nessuna scheda associata a questo giorno"}</p>
+    ${sessions.length?sessions.map(s=>`<button class="calendarSession" type="button" data-calendar-session="${escapeHTML(s.id)}"><b>${escapeHTML(s.dayName||"Allenamento")}</b><span>${s.closed?"Completato":"In corso"} · Apri ›</span></button>`).join(""):'<p class="muted small">Nessun allenamento registrato.</p>'}
+    <h4>Pasti consumati</h4>${mealSummaries.length?mealSummaries.map(t=>`<p class="calendarMeal">✓ ${escapeHTML(t)}</p>`).join(""):'<p class="muted small">Nessun pasto segnato come consumato.</p>'}`;
+}
+$("calendarPrev")?.addEventListener("click",()=>{calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()-1,1,12);calendarSelected=localISO(calendarCursor);renderCalendar();});
+$("calendarNext")?.addEventListener("click",()=>{calendarCursor=new Date(calendarCursor.getFullYear(),calendarCursor.getMonth()+1,1,12);calendarSelected=localISO(calendarCursor);renderCalendar();});
+$("calendarGrid")?.addEventListener("click",e=>{const b=e.target.closest("[data-calendar-date]");if(!b)return;calendarSelected=b.dataset.calendarDate;renderCalendar();});
+$("calendarDetails")?.addEventListener("click",e=>{const b=e.target.closest("[data-calendar-session]");if(b)openSessionModal(b.dataset.calendarSession);});
+
+/* ---------------- Pasti preferiti (copie indipendenti dai piani) ---------------- */
+function renderMealFavorites(){
+ const box=$("mealFavorites");if(!box)return;box.replaceChildren();
+ if(!state.mealFavorites.length){box.textContent="Nessun preferito: salva un pasto dal planner.";return;}
+ for(const favorite of state.mealFavorites){
+   const card=document.createElement("div");card.className="favoriteItem";
+   const diet=getActiveDiet();
+   const choices=diet?getDietMealKeys(diet).map(key=>`<option value="${escapeHTML(key)}">${escapeHTML(getMealLabel(diet,key))}</option>`).join(""):"";
+   card.innerHTML=`<div><b>${escapeHTML(favorite.name)}</b><small>${favorite.items.length} alimenti</small></div><div class="favoriteActions"><select data-favorite-target="${escapeHTML(favorite.id)}" aria-label="Scegli pasto di destinazione">${choices}</select><button class="btn" data-favorite-apply="${escapeHTML(favorite.id)}" type="button" ${diet?"":"disabled"}>Usa</button><button class="iconBtn danger" data-favorite-delete="${escapeHTML(favorite.id)}" type="button" aria-label="Elimina preferito ${escapeHTML(favorite.name)}">×</button></div>`;
+   box.appendChild(card);
+ }
+}
+$("mealFavorites")?.addEventListener("click",e=>{
+ const del=e.target.closest("[data-favorite-delete]"),apply=e.target.closest("[data-favorite-apply]");
+ if(del){if(!confirm("Eliminare questo pasto preferito?"))return;state.mealFavorites=state.mealFavorites.filter(f=>f.id!==del.dataset.favoriteDelete);saveState();renderMealFavorites();return;}
+ if(!apply)return;
+ const fav=state.mealFavorites.find(f=>f.id===apply.dataset.favoriteApply),diet=getActiveDiet();if(!fav||!diet)return;
+ const match=apply.closest(".favoriteItem")?.querySelector("[data-favorite-target]")?.value;
+ if(!match){toast("Scegli il pasto di destinazione");return;}
+ const di=Number($("dietDaySelect").value);
+ if((diet.week[di].meals[match]||[]).length && !confirm("Sostituire gli alimenti del pasto selezionato?"))return;
+ diet.week[di].meals[match]=clone(fav.items);saveState();renderDietPreview();renderDietWeek();toast("Pasto preferito applicato");
+});
 
 /* ---------------- food planning, nutrition & purchases ---------------- */
 function dateForDietDay(dayIndex){
@@ -2261,7 +2359,17 @@ $("dietPreview")?.addEventListener("change",e=>{
 $("dietPreview")?.addEventListener("click",e=>{
   const edit=e.target.closest("[data-open-meal-editor]");
   const duplicate=e.target.closest("[data-copy-meal-tomorrow]");
+  const favoriteButton=e.target.closest("[data-meal-favorite]");
   const d=getActiveDiet(),di=Number($("dietDaySelect").value);
+  if(favoriteButton && d){
+    const key=favoriteButton.dataset.mealFavorite,items=d.week?.[di]?.meals?.[key]||[];
+    if(!items.length)return;
+    const name=prompt("Nome del pasto preferito:",getMealLabel(d,key));
+    if(name===null)return;
+    if(!name.trim()){toast("Inserisci un nome");return;}
+    state.mealFavorites.push({id:uid(),name:name.trim().slice(0,60),items:clone(items)});
+    saveState();renderMealFavorites();toast("Pasto salvato nei preferiti");return;
+  }
   if(edit && d){
     state.ui.dietEditDayIndex=di;
     state.ui.dietEditMeal=Number(edit.dataset.openMealEditor);
@@ -2304,6 +2412,52 @@ function normalizedUnit(unit,qty){
   if(["g","ml","pz"].includes(u))return {unit:u,qty:num};
   return null;
 }
+/* ---------------- Dispensa condivisa con la lista della spesa ---------------- */
+function pantryKey(food,unit){return normalizedFood(food)+"|"+(normalizedUnit(unit,1)?.unit||unit);}
+function stockForRow(pantryQty,rowUnit){
+  const u=String(rowUnit||"").toLowerCase();
+  return u==="kg"||u==="l"?pantryQty/1000:pantryQty;
+}
+function findPantry(food,unit){return state.pantry.find(p=>p.key===pantryKey(food,unit));}
+function setPantry(food,qty,unit){
+ const norm=normalizedUnit(unit,qty),name=String(food||"").trim();
+ if(!name||!norm||!Number.isFinite(norm.qty)||norm.qty<0)return false;
+ const key=pantryKey(name,norm.unit),entry=state.pantry.find(p=>p.key===key);
+ if(entry){entry.qty=norm.qty;entry.food=name;}
+ else state.pantry.push({key,food:name,unit:norm.unit,qty:norm.qty});
+ state.grocery.rows.forEach(r=>{if(pantryKey(r.food,r.unit)===key)r.stock=stockForRow(norm.qty,r.unit);});
+ return true;
+}
+function pantryReconcile(){
+ for(const r of state.grocery.rows){
+  const item=findPantry(r.food,r.unit);
+  if(item)r.stock=stockForRow(item.qty,r.unit);
+ }
+}
+function renderPantry(){
+ const box=$("pantryList");if(!box)return;
+ box.replaceChildren();
+ if(!state.pantry.length){box.innerHTML='<p class="muted small">Dispensa vuota. Aggiungi ciò che hai già in casa.</p>';return;}
+ for(const item of [...state.pantry].sort((a,b)=>a.food.localeCompare(b.food,"it"))){
+  const div=document.createElement("div");div.className="pantryItem";
+  div.innerHTML=`<div><b>${escapeHTML(item.food)}</b><span>${escapeHTML(item.qty)} ${escapeHTML(item.unit)}</span></div><div class="pantryActions"><button type="button" class="iconBtn" data-pantry-edit="${escapeHTML(item.key)}">Modifica</button><button type="button" class="iconBtn danger" data-pantry-remove="${escapeHTML(item.key)}">Elimina</button></div>`;
+  box.appendChild(div);
+ }
+}
+$("pantrySave")?.addEventListener("click",()=>{
+ const food=$("pantryFood").value,qty=Number($("pantryQty").value),unit=$("pantryUnit").value;
+ if(!setPantry(food,qty,unit)){toast("Inserisci alimento e quantità non negativa");return;}
+ $("pantryFood").value="";$("pantryQty").value="1";
+ saveState();renderPantry();renderGrocery();toast("Dispensa aggiornata");
+});
+$("pantryList")?.addEventListener("click",e=>{
+ const edit=e.target.closest("[data-pantry-edit]"),del=e.target.closest("[data-pantry-remove]");
+ if(edit){const row=state.pantry.find(x=>x.key===edit.dataset.pantryEdit);if(!row)return;
+ $("pantryFood").value=row.food;$("pantryQty").value=row.qty;$("pantryUnit").value=row.unit;$("pantryFood").focus();return;}
+ if(del){const row=state.pantry.find(x=>x.key===del.dataset.pantryRemove);if(!row||!confirm(`Rimuovere ${row.food} dalla dispensa?`))return;
+ state.pantry=state.pantry.filter(x=>x.key!==row.key);state.grocery.rows.forEach(r=>{if(pantryKey(r.food,r.unit)===row.key)r.stock=0;});
+ saveState();renderPantry();renderGrocery();toast("Alimento rimosso dalla dispensa");}
+});
 function foodCategory(food){
   const n=normalizedFood(food);
   if(/latte|yogurt|ricotta|formaggio|mozzarella|parmigiano|skyr/.test(n))return "Latticini";
@@ -2349,7 +2503,7 @@ function updateGrocery(){
   const activeIds=new Set(incoming.map(r=>r.id));
   const next=incoming.map(item=>{
     const old=previous.get(item.id);
-    return {...item,stock:old?.stock||0,bought:old?.bought||false,manual:false,stale:false};
+    return {...item,stock:(findPantry(item.food,item.unit)?stockForRow(findPantry(item.food,item.unit).qty,item.unit):old?.stock ?? 0),bought:old?.bought||false,manual:false,stale:false};
   });
   // Manuali sempre intatti; non previsti ma già utilizzati rimangono per verifica.
   for(const old of rows){
@@ -2357,7 +2511,7 @@ function updateGrocery(){
     else if(!activeIds.has(old.id) && (old.bought || old.stock>0))next.push({...old,qty:0,stale:true});
   }
   state.grocery={rows:next,context:{dietId:result.dietId,...result.range},excluded};
-  saveState();renderGrocery();toast("Lista aggiornata senza perdere acquisti e articoli manuali");
+  pantryReconcile();saveState();renderPantry();renderGrocery();toast("Lista aggiornata senza perdere acquisti e articoli manuali");
 }
 function openGrocery(){
   const start=$("groceryStart"),end=$("groceryEnd");
@@ -2365,6 +2519,7 @@ function openGrocery(){
   if(!end.value)end.value=displayDate(state.grocery.context?.end||addLocalDays(parseItalianDate(start.value)||todayISO(),6));
   if(!state.grocery.context && getActiveDiet())updateGrocery();
   else renderGrocery();
+  renderPantry();
 }
 function renderGrocery(){
   const box=$("groceryItems"),summary=$("grocerySummary");if(!box)return;
@@ -2449,7 +2604,12 @@ $("groceryItems")?.addEventListener("change",e=>{
     const it=groceryItem(input.dataset.groceryCheck);if(it)it.bought=input.checked;
   }else if(input.matches("[data-grocery-stock]")){
     const it=groceryItem(input.dataset.groceryStock);
-    if(it)it.stock=Math.max(0,finiteNumber(input.value));
+    if(it){
+      const qty=Number(input.value);
+      if(!Number.isFinite(qty)||qty<0){toast("Quantità non valida");input.value=it.stock??0;return;}
+      setPantry(it.food,qty,it.unit);
+      renderPantry();
+    }
   }else return;
   saveState();renderGrocery();
 });
@@ -2782,6 +2942,47 @@ $("btnSaveSettings")?.addEventListener("click",()=>{
   toast("Impostazioni salvate");
 });
 
+/* ---------------- Salvataggi e integrità: nessun reset silenzioso ---------------- */
+const PRE_IMPORT_KEY="fitplanner_preimport_v43";
+function integrityIssues(data=state){
+ const problems=[];
+ if(!validDataShape(data))problems.push("Struttura generale del backup non valida");
+ const dup=arr=>{const ids=arr.map(x=>String(x?.id??"")).filter(Boolean);return ids.length!==new Set(ids).size;};
+ if(dup(data.plans||[]))problems.push("ID duplicati nelle schede");
+ if(dup(data.diets||[]))problems.push("ID duplicati nelle diete");
+ if(dup(data.sessions||[]))problems.push("ID duplicati nelle sessioni");
+ for(const session of data.sessions||[]){
+   if(session.date && !/^\d{4}-\d{2}-\d{2}$/.test(String(session.date)))problems.push("Data non valida nello storico");
+   for(const item of session.items||[]){for(const set of item.sets||[]){
+     if(String(set.kg??"").trim() && (!Number.isFinite(toNum(set.kg))||toNum(set.kg)<0))problems.push("Kg non valido nello storico");
+     if(String(set.reps??"").trim() && (!Number.isFinite(toNum(set.reps))||toNum(set.reps)<0))problems.push("Ripetizioni non valide nello storico");
+   }}
+ }
+ for(const row of data.grocery?.rows||[]){if(!row||!Number.isFinite(Number(row.qty))||Number(row.qty)<0)problems.push("Quantità non valida nella spesa");}
+ for(const row of data.pantry||[]){if(!row||!Number.isFinite(row.qty)||row.qty<0)problems.push("Quantità non valida nella dispensa");}
+ return [...new Set(problems)];
+}
+function renderBackupStatus(){
+ const el=$("backupStatus");if(!el)return;
+ const last=Number(state.meta?.lastExportStartedAt);
+ const days=last?Math.floor((Date.now()-last)/86400000):null;
+ el.textContent=!last?"Non risulta un'esportazione avviata da questa versione. Conserva un JSON in File o iCloud Drive.":
+  `Ultima esportazione avviata: ${displayDate(localISO(new Date(last)))}.${days>=30?" È consigliabile crearne una nuova.":""}`;
+ const recovery=$("btnPreImportRestore");if(recovery){let exists=false;try{exists=Boolean(localStorage.getItem(PRE_IMPORT_KEY));}catch{}recovery.hidden=!exists;}
+}
+$("btnIntegrityCheck")?.addEventListener("click",()=>{
+ const errors=integrityIssues();
+ alert(errors.length?"Controlli da verificare:\n• "+errors.join("\n• "):"Controllo completato: nessuna anomalia strutturale rilevata. Questo non sostituisce un backup.");
+});
+$("btnPreImportRestore")?.addEventListener("click",()=>{
+ let raw;try{raw=localStorage.getItem(PRE_IMPORT_KEY);}catch{}
+ const previous=safeParse(raw);
+ if(!validDataShape(previous)){alert("Nessuna copia di recupero valida.");return;}
+ if(!confirm("Ripristinare i dati precedenti all'ultima importazione? I dati attuali saranno sostituiti. Prima esporta un backup."))return;
+ const current=state;
+ try{state=clone(previous);if(!saveState())throw Error("Salvataggio non riuscito");boot();setView("settings");toast("Dati precedenti recuperati");}
+ catch(e){state=current;saveState();alert("Ripristino non riuscito: "+e.message);}
+});
 /* ---------------- backup ---------------- */
 $("btnExport")?.addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
@@ -2789,6 +2990,7 @@ $("btnExport")?.addEventListener("click",()=>{
   a.href=URL.createObjectURL(blob);
   a.download=`fitplanner_backup_${displayDate(todayISO()).replaceAll("/","-")}.json`;
   a.click();
+  state.meta.lastExportStartedAt=Date.now();saveState();renderBackupStatus();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 });
 $("fileImport")?.addEventListener("change", async (e)=>{
@@ -2798,15 +3000,20 @@ $("fileImport")?.addEventListener("change", async (e)=>{
   try{txt=await f.text();}catch{toast("Impossibile leggere il file");return;}
   const obj=safeParse(txt);
   if(!validDataShape(obj)){ alert("Backup non valido o incompleto: dati attuali invariati.");e.target.value=""; return; }
+  const issues=integrityIssues(obj);
+  if(issues.length){alert("Backup con dati anomali. Importazione annullata:\n"+issues.join("\n"));e.target.value="";return;}
   const info=`${obj.plans?.length||0} schede, ${obj.diets?.length||0} diete, ${obj.sessions?.length||0} sessioni`;
   if(!confirm(`Importare questo backup (${info})?\n\nATTENZIONE: i dati correnti saranno sostituiti. Esportali prima per sicurezza.`)){e.target.value="";return;}
   const previous=state, wasBlocked=storageBlocked;
   try{
+    // Conserva una copia prima di qualunque sovrascrittura; se non c'e' spazio, annulla.
+    const previousRaw=localStorage.getItem(KEY);
+    localStorage.setItem(PRE_IMPORT_KEY,previousRaw??JSON.stringify(previous));
     state=clone(obj); storageBlocked=false;
     if(!saveState()) throw Error("Scrittura non riuscita");
-    boot();
+    boot();setView("settings");renderBackupStatus();
     toast("Backup ripristinato");
-  }catch(err){ state=previous; storageBlocked=wasBlocked; alert("Importazione fallita: "+err.message); }
+  }catch(err){ state=previous; storageBlocked=wasBlocked;try{if(!wasBlocked)localStorage.setItem(KEY,JSON.stringify(previous));}catch{}alert("Importazione fallita: "+err.message); }
   finally{ e.target.value=""; }
 });
 
@@ -2820,6 +3027,16 @@ function ensureBaseData(){
   state.ui={...clone(DEFAULT.ui),...state.ui};
   if(!state.consumed || typeof state.consumed!=="object" || Array.isArray(state.consumed)) state.consumed={};
   if(!state.grocery || !Array.isArray(state.grocery.rows)) state.grocery=clone(DEFAULT.grocery);
+  if(!Array.isArray(state.mealFavorites)) state.mealFavorites=[];
+  state.mealFavorites=state.mealFavorites.filter(f=>f&&typeof f.name==="string"&&Array.isArray(f.items));
+  if(!state.meta || typeof state.meta!=="object" || Array.isArray(state.meta))state.meta={};
+  if(!Array.isArray(state.pantry)){
+    state.pantry=[];
+    // Migrazione conservativa delle scorte gia' indicate nella v42.
+    for(const r of state.grocery.rows){if(finiteNumber(r.stock)>0)setPantry(r.food,r.stock,r.unit);}
+  }
+  state.pantry=state.pantry.filter(r=>r&&typeof r.food==="string"&&["g","ml","pz"].includes(r.unit)&&Number.isFinite(r.qty)&&r.qty>=0);
+  pantryReconcile();
   // Data migration additive, preserva tutto il resto del documento originale.
   state.plans.forEach(p=>(p.days||[]).forEach(d=>{
     if(d.weekday===undefined){
@@ -2924,6 +3141,7 @@ function boot(){
   refreshHomeSessionButton();
   renderDietWeek();
   renderGrocery();
+  renderPantry();renderMealFavorites();renderBackupStatus();
   const warning=$("storageWarning");
   if(warning && storageIssue){
     warning.hidden=false; warning.textContent=storageIssue;

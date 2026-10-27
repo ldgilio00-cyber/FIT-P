@@ -1,50 +1,64 @@
-# Fit Planner Premium v42 — Progressi adattivi (27/10/2026)
+# Fit Planner Premium v43 — calendario, preferiti, allenamento rapido, dispensa e backup
 
-Patch incrementale dalla **v41**, progettata per la PWA installata sulla Home di iPhone. Conserva **tutte le funzionalità** precedenti. Non introduce librerie, account o backend. Lo ZIP contiene **esclusivamente i file modificati**, con i percorsi originali `FIT-P-main/...`.
+Aggiornamento incrementale **dalla v42**. È una patch sui file reali: sostituire soltanto i file forniti, **senza cancellare gli altri**. La chiave locale resta `fitplanner_v7`. Non spostare il sito su un nuovo dominio o percorso base: i dati locali della PWA dipendono dall'origine web.
 
-## Installazione
+## Changelog dei file
 
-1. Prima dell'aggiornamento, dalla v41 vai in **Impostazioni → Export JSON** e conserva una copia dei dati.
-2. Sostituisci **insieme** i cinque file contenuti nello ZIP, senza cambiare la cartella di pubblicazione o il dominio della PWA.
-3. Apri l'app dall'icona nella schermata Home dell'iPhone. Se compare **Aggiorna app**, premi il pulsante e riapri l'app.
-4. Nelle Impostazioni verifica **Fit Planner v42**. Ricontrolla le schede, lo storico, la dieta e la lista della spesa.
-
-La chiave `localStorage` resta `fitplanner_v7`. **Nessun dato viene azzerato o convertito in un nuovo formato.** I nuovi filtri dello storico e del grafico sono soltanto preferenze dell'interfaccia, senza cambiare le sessioni registrate.
-
-## Interventi per file
-
-| File | Intervento |
+| File | Cosa cambia |
 | --- | --- |
-| `index.html` | Sezione Progressi ridisegnata: quattro indicatori, grafico con selettore esercizio, indicatore e intervallo, dettaglio del punto toccato, ricerca/filtri dello storico e ricerca dei record. Aggiornata versione v42. |
-| `app.js` | Riepiloghi calcolati dai dati reali, progressione a 12/30/tutte le sessioni, grafico canvas ad alta risoluzione adattivo, ridisegno al cambio dimensioni, selezione di un punto con tocco, lista sessioni/record a caricamento progressivo, ricerca, filtri Aperte/Concluse e collegamento record → grafico. Migliorata l'interpretazione del volume: senza ripetizioni valide il volume è sconosciuto, non zero. |
-| `styles.css` | Layout mobile-first senza larghezze fisse, campi e pulsanti adatti al tocco, card compatte, grafico con spazio per assi ed etichette, disposizione responsive a 320–430 px e desktop, tema chiaro/scuro. |
-| `sw.js` | Cache aggiornata a `fitplanner-static-v42-20261027` per pubblicare insieme HTML/JS/CSS. |
-| `README.md` | Questo changelog e la guida di verifica. |
+| `app.js` | Calendario mensile e dettaglio giornaliero; pasti preferiti clonabili e applicabili ai piani; completamento rapido delle serie con Annulla e barra di avanzamento; dispensa condivisa con la lista Spesa e migrazione delle vecchie scorte; controllo integrità, avviso esportazione e copia di sicurezza automatica prima di importare un JSON. |
+| `index.html` | Nuova vista Calendario, accessi da Home e Progressi; preferiti nella Dieta; editor Dispensa nella Spesa; strumenti di verifica e ripristino in Impostazioni; versione v43. |
+| `styles.css` | Layout mobile responsive di calendario, preferiti, dispensa, serie rapide e stato backup; corretta resa anche a 320 px. |
+| `sw.js` | Cache statica rinominata in `fitplanner-static-v43-20261027` per servire insieme le risorse aggiornate. |
+| `README.md` | Questa guida di verifica e aggiornamento. |
 
-### Regole dei numeri visualizzati
+**Nessuna nuova libreria, backend, account o servizio esterno.** `manifest.webmanifest`, icone e altre risorse restano quelli della v42.
 
-- **Sessioni concluse**: numero delle sessioni marcate chiuse nello storico.
-- **Serie registrate**: serie che hanno **sia** carico valido **sia** ripetizioni positive.
-- **Volume totale**: somma `kg × ripetizioni` delle serie registrate (non è una stima delle calorie né del consumo energetico).
-- **Esercizi registrati**: numero di esercizi distinti con almeno una serie valida.
-- **Carico massimo/medio**: rispettivamente il kg più alto e la media dei kg registrati per sessione dell'esercizio scelto. Il grafico può includere anche dati di sessioni in corso, riconoscibili nello storico.
-- **Volume del grafico**: solo sessioni che contengono almeno una serie con kg e ripetizioni validi.
-- **Variazione**: differenza tra il primo e l'ultimo valore nel periodo selezionato; non è necessariamente un miglioramento continuo.
-- **Record personali**: kg massimo registrato per esercizio. Non è una stima di 1RM.
+## Funzionalità nuove
 
-## Cosa testare su iPhone
+### Calendario
 
-1. Apri **Progressi** dalla barra inferiore. Verifica che **non sia necessario scorrere orizzontalmente** e che nessuna scheda oltrepassi il bordo a sinistra o a destra.
-2. In **Andamento**, scegli un esercizio e cambia **Carico massimo**, **Carico medio**, **Volume**. I numeri devono cambiare e mostrare l'unità corretta.
-3. Tocca **Ultime 12**, **Ultime 30**, **Tutte**: il grafico e le tre statistiche devono rispondere. Tocca un punto per leggere **data italiana, valore e posizione** sotto il grafico.
-4. Nello **Storico**, prova **Tutte**, **Concluse**, **In corso**, ricerca per nome e il pulsante **Mostra altre sessioni**. Apri una sessione e verifica che il dettaglio e le serie rimangano modificabili.
-5. In **Record personali**, cerca un esercizio e tocca il risultato **Vedi grafico**: deve selezionare quell'esercizio e riportarti all'andamento.
-6. Chiudi e riapri l'app. Le sessioni devono risultare identiche. Controlla anche **Palestra**, **Dieta**, **Spesa** e il backup JSON.
-7. Ripeti almeno un controllo in modalità scura, con testo ingrandito e con l'iPhone in modalità aereo dopo aver aggiornato la PWA una volta online.
+Dalla Home premi **Apri calendario**, oppure dai Progressi **Apri calendario mensile**. Scorri i mesi e tocca un giorno: vedrai le sessioni registrate (apribili dallo storico), le eventuali sessioni previste dalla scheda attiva per quel giorno della settimana e i nomi dei pasti effettivamente segnati consumati. I due puntini colorati distinguono allenamenti e pasti consumati. Il calendario legge i dati esistenti, **non li duplica**. Le date visibili restano `GG/MM/AAAA`.
 
-## Test effettivamente eseguiti
+### Dieta e pasti preferiti
 
-- Sintassi JavaScript validata con `node --check`.
-- Test automatizzati in Chromium con viewport **320×568, 375×667, 390×844, 430×932 e 1024×768**: nessun overflow orizzontale, card entro i bordi, nessun errore JS nei percorsi provati.
-- Verificati: KPI calcolati da 42 sessioni simulate, filtro 12/30/tutte, lettura di un punto del grafico, cambio indicatore, ricerca e filtri storico, caricamento progressivo, apertura del dettaglio di una sessione, collegamento dal record al grafico.
-- **Non eseguiti**: test su un iPhone reale con PWA standalone, test con VoiceOver e collaudo completo dell'aggiornamento Service Worker installato. Sono necessarie le prove pratiche indicate sopra.
+Nella Dieta, ogni pasto pianificato che contiene alimenti ha il tasto **☆ Preferito**. Assegna un nome: verrà salvata una **copia autonoma** del pasto. Più in basso, scegli il giorno, seleziona Colazione/Pranzo/Cena (o un altro nome personalizzato) nel menu del preferito, quindi **Usa**. Se il pasto di destinazione contiene già alimenti, viene chiesta conferma prima di sostituirli. Puoi eliminare i preferiti singolarmente. Modificare una copia nel piano non altera l'originale memorizzato tra i preferiti.
+
+### Allenamento rapido
+
+Ogni riga della tabella Serie possiede il tasto **✓**. Se kg e ripetizioni sono già stati digitati, usa quei valori; se il campo è vuoto, l'app propone il valore della stessa serie dell'ultima sessione registrata, quando disponibile. Per completare è necessaria una quantità valida di ripetizioni. Ogni azione è esplicita: il software non inventa una prestazione. Il tasto **Annulla** ripristina la serie esattamente com'era prima dell'ultimo completamento rapido, finché non viene eseguita un'altra modifica. La barra mostra le serie con ripetizioni registrate.
+
+### Dispensa e spesa
+
+La nuova card **Dispensa** permette di inserire alimenti, quantità e unità (g, kg, ml, l, pz). Le unità compatibili vengono normalizzate per il calcolo e la quantità da acquistare non scende mai sotto zero. Le scorte già inserite nelle righe della Spesa v42 vengono convertite automaticamente in voci della Dispensa al primo avvio. Modificare la quantità **In casa** su un prodotto della Spesa aggiorna anche la Dispensa. La spunta “Acquistato” **non** aggiunge automaticamente quel prodotto in dispensa: potrai aggiornare la quantità disponibile quando lo riponi. Restano preservati gli articoli manuali e le spunte già effettuate.
+
+### Backup e controllo dati
+
+Nelle **Impostazioni** trovi **Controlla integrità** (controlli strutturali, senza alterare i dati), un'indicazione della data in cui è stata **avviata** l'ultima esportazione e il pulsante per recuperare il salvataggio precedente all'ultima importazione, se disponibile. Prima di ogni importazione viene salvata una copia sotto la chiave distinta `fitplanner_preimport_v43`; se lo spazio non basta, l'importazione viene bloccata anziché rischiare di perdere dati. Un backup JSON non valido viene rifiutato e l'importazione continua a richiedere conferma. La copia di recupero è **solo sullo stesso dispositivo** e non sostituisce un backup esportato su File/iCloud Drive.
+
+## Come aggiornare su iPhone
+
+1. Dalla **v42**, vai in **Impostazioni → Export JSON** e conserva il file nella cartella File o su iCloud Drive.
+2. Copia i cinque file dello ZIP nella stessa posizione del progetto, sovrascrivendo quelli omonimi; mantieni tutte le altre risorse.
+3. Apri la PWA installata sulla schermata Home, attendi l'avviso di aggiornamento e premi **Aggiorna app**. Riapri se necessario.
+4. Verifica la dicitura **v43** in Impostazioni. Controlla schede, diete, sessioni, spesa, scorte e pasti consumati.
+5. Fai un nuovo backup quando hai verificato il corretto funzionamento.
+
+**Non disinstallare l'app né eliminare dati siti web da Safari prima di avere un backup valido.**
+
+## Guida ai test reali
+
+- **Calendario:** apri un mese con allenamenti precedenti; i giorni devono presentare un punto e il dettaglio deve aprire la sessione corretta. Controlla anche un giorno con pasti segnati consumati.
+- **Preferiti:** salva Colazione nei preferiti, scegli un altro giorno e applicala a Colazione. Controlla che la prima giornata sia rimasta invariata.
+- **Serie rapide:** apri un esercizio già svolto, tocca ✓ su una serie vuota, controlla che siano stati ripresi i dati della serie precedente; premi Annulla e verifica il ripristino. Prova anche una serie senza storico.
+- **Dispensa:** registra 0,5 kg di riso, ricalcola la Spesa e controlla che vengano sottratti 500 g da un fabbisogno espresso in g. Cambia la scorta dalla Spesa e riapri la Dispensa.
+- **Backup:** esegui Controlla integrità. Esporta un JSON. Non testare un ripristino sostitutivo sui tuoi unici dati reali: usa una copia di prova dell'app, oppure verifica soltanto il rifiuto di un file JSON non valido.
+- **iPhone standalone/offline:** prova l'apertura dalla schermata Home, l'utilizzo della tastiera su kg/ripetizioni e la riapertura in modalità aereo dopo un primo aggiornamento online.
+
+## Test eseguiti nell'ambiente disponibile
+
+- Controllo sintattico di `app.js` con Node.js.
+- Test automatici in Chromium: calendario, apertura storico, completamento rapido e annullamento, creazione/applicazione preferiti, migrazione vecchie scorte, compatibilità g/kg e ml/l, preservazione `fitplanner_v7`, import JSON valido/non valido, recupero pre-importazione.
+- Verifica responsive e assenza di overflow orizzontale nelle nuove schermate a **320, 375, 390, 430 e 1024 px**.
+
+**Non eseguiti:** test fisici su iPhone/Safari PWA standalone, conferma del comportamento reale della tastiera iOS e collaudo del Service Worker dopo pubblicazione. Questi devono essere verificati sul dispositivo.

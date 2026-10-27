@@ -1369,3 +1369,77 @@ button:focus-visible, input:focus-visible, select:focus-visible {outline:2px sol
   #view-progress .progressCard{padding:20px;}
   #view-progress #exProgressChart{height:290px;}
 }
+
+/* ================================================================
+   Fit Planner v43 - Calendario, pasti preferiti, dispensa, backup
+   ================================================================ */
+.calendarShell{max-width:780px;margin:0 auto}
+.calendarToolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 12px}
+.calendarToolbar h3{margin:0;font-size:19px;text-transform:capitalize;letter-spacing:-.02em;text-align:center}
+.calendarToolbar .btn{min-width:48px;height:46px;font-size:23px}
+.calendarLegend{display:flex;gap:18px;flex-wrap:wrap;margin:0 0 14px;color:var(--muted);font-size:12px}
+.calendarLegend span{display:inline-flex;align-items:center;gap:7px}
+.legendDot{height:8px;width:8px;border-radius:99px;display:inline-block}
+.legendDot.training,.calendarMarks .training{background:#7496ff}
+.legendDot.food,.calendarMarks .food{background:#44c6a5}
+.calendarGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.calendarWeekday{text-align:center;font-size:11px;font-weight:750;color:var(--muted);padding:6px 0}
+.calendarDay{min-width:0;border:1px solid var(--line);background:var(--surface3);border-radius:13px;min-height:55px;display:flex;flex-direction:column;gap:5px;align-items:center;justify-content:center;color:var(--text);font:inherit;cursor:pointer}
+.calendarDay strong{font-size:14px}
+.calendarDay.today{border-color:var(--primary)}
+.calendarDay.selected{background:var(--primarySoft);border-color:var(--primary);color:var(--primary)}
+.calendarMarks{min-height:6px;display:flex;align-items:center;gap:4px}
+.calendarMarks i{width:6px;height:6px;border-radius:50%;display:block}
+.calendarDetails{margin-top:18px;border:1px solid var(--line);background:var(--surface3);border-radius:18px;padding:16px}
+.calendarDetails h3{margin:0 0 8px;font-size:19px}
+.calendarDetails h4{margin:17px 0 8px;font-size:14px}
+.calendarSession{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 10px;margin-top:7px;border:1px solid var(--line);border-radius:14px;color:var(--text);background:var(--card);text-align:left;cursor:pointer}
+.calendarSession span{font-size:12px;color:var(--muted)}
+.calendarMeal{margin:6px 0;font-size:13px;overflow-wrap:anywhere}
+.favoritesBar{margin-top:22px}
+.favoritesBar h3{margin:0 0 5px;font-size:17px}
+.favoriteList{display:grid;gap:8px;margin-top:12px}
+.favoriteItem,.pantryItem{border:1px solid var(--line);border-radius:16px;background:var(--surface3);padding:11px 13px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.favoriteItem>div:first-child,.pantryItem>div:first-child{display:flex;flex-direction:column;gap:4px;min-width:0;overflow-wrap:anywhere}
+.favoriteItem small,.pantryItem span{font-size:12px;color:var(--muted)}
+.favoriteActions,.pantryActions{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.favoriteActions .btn,.pantryActions .iconBtn{min-height:40px}
+.pantryList{display:grid;gap:8px;margin-top:14px}
+.pantryForm .field{flex:1 1 135px;min-width:0}
+.pantryForm .field.grow{flex:2 1 200px}
+.backupStatus{border:1px solid var(--line);border-radius:15px;padding:13px;margin-top:12px;background:var(--surface3);color:var(--muted);font-size:13px;line-height:1.45}
+.quickSetTools{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;margin:12px 0 8px}
+.quickSetTools span{color:var(--muted);font-size:11px;white-space:nowrap}
+.quickSetTools .btn{min-height:36px;font-size:12px;padding:7px 9px}
+.quickSetTrack{min-width:0;height:7px;border-radius:9px;background:var(--line);overflow:hidden}
+.quickSetFill{height:100%;border-radius:9px;background:linear-gradient(90deg,var(--primary),#65d4ba);transition:width .2s ease}
+.seriesRowButton{font-size:19px}
+@media(max-width:430px){
+ .calendarShell{padding:14px}
+ .calendarGrid{gap:4px}
+ .calendarDay{min-height:49px;border-radius:11px}
+ .calendarDetails{padding:12px}
+ .calendarSession{flex-direction:column;align-items:stretch;gap:4px}
+ .favoriteItem,.pantryItem{padding:11px;gap:8px}
+ .favoriteActions,.pantryActions{gap:5px}
+ .favoriteActions .btn,.pantryActions .iconBtn{padding:8px;font-size:12px}
+ .quickSetTools{gap:7px}
+ .quickSetTools .btn{padding:6px}
+}
+@media(max-width:350px){
+ .calendarDay{min-height:43px}
+ .calendarDay strong{font-size:12px}
+ .favoriteItem{flex-wrap:wrap}
+ .favoriteActions{width:100%;justify-content:flex-end}
+ .pantryItem{flex-wrap:wrap}
+ .pantryActions{width:100%;justify-content:flex-end}
+}
+@media(prefers-reduced-motion:reduce){.quickSetFill{transition:none}}
+
+.favoriteActions select{max-width:128px;min-width:0;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--card);color:var(--text);font:inherit;font-size:13px;padding:5px 7px;}
+@media(max-width:400px){.favoriteItem{flex-wrap:wrap}.favoriteActions{width:100%;justify-content:flex-end}}
+/* Il titolo del calendario e il ritorno restano sulla stessa riga, anche su iPhone. */
+.calendarShell>.cardHead{flex-direction:row;align-items:center}
+.calendarShell>.cardHead>.btn{width:auto;flex:0 0 auto;min-width:86px;min-height:42px}
+
+#session .seriesIndex{background:transparent;border:0;padding:0;min-width:0;min-height:42px;cursor:pointer;font:inherit}
