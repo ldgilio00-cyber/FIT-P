@@ -27,9 +27,14 @@ function updateKeyboardInset(){
   const vp=window.visualViewport;
   const inset=Math.max(0,Math.round(window.innerHeight-vp.height-vp.offsetTop));
   document.documentElement.style.setProperty("--keyboard-inset",`${inset}px`);
+  // iOS Safari: il pannello di allenamento usa l'altezza visibile con tastiera aperta,
+  // ma il footer non si sposta più in modo indipendente dal contenuto.
+  document.documentElement.style.setProperty("--session-viewport-height",`${Math.round(vp.height)}px`);
 }
 window.visualViewport?.addEventListener("resize",updateKeyboardInset);
 window.visualViewport?.addEventListener("scroll",updateKeyboardInset);
+window.addEventListener("resize",updateKeyboardInset);
+updateKeyboardInset();
 const $ = (id) => document.getElementById(id);
 const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
 // Date locali: UTC non deve spostare i giorni per utenti in Italia o altri fusi.
@@ -1217,9 +1222,6 @@ function renderSingleSet(){
       </div>
 
       <div class="setPicker" role="group" aria-label="Seleziona la serie da modificare">${it.sets.map((set,n)=>`<button type="button" class="setChip ${n===idx?"active":""} ${String(set.reps??"").trim()?"done":""}" data-go-set="${n}" aria-label="Apri serie ${n+1}" aria-pressed="${n===idx}">${n+1}${String(set.reps??"").trim()?" ✓":""}</button>`).join("")}</div>
-      ${histLine ? `<div class="tip" style="margin:0 0 10px 0">${escapeHTML(histLine)}</div>` : ""}
-      ${sugLine ? `<div class="tip" style="margin:0 0 10px 0"><b>Suggerimento:</b> ${escapeHTML(sugLine)}</div>` : ""}
-
       <div class="singleGrid">
         <label class="field">
           <span>Kg</span>
@@ -1232,8 +1234,8 @@ function renderSingleSet(){
 
       </div>
 
-      <div class="muted small">Scheda: ${escapeHTML(it.target.repMin)}-${escapeHTML(it.target.repMax)} reps</div>
-      <div class="muted small">${s.closed ? "Nota: la sessione è segnata come chiusa, ma puoi modificarla comunque." : ""}</div>
+      <div class="singleTarget">Obiettivo ${escapeHTML(it.target.repMin)}–${escapeHTML(it.target.repMax)} ripetizioni</div>
+      ${(histLine || sugLine || s.closed) ? `<details class="setAdvice"><summary>Storico e suggerimenti</summary>${histLine ? `<p>${escapeHTML(histLine)}</p>` : ""}${sugLine ? `<p>${escapeHTML(sugLine)}</p>` : ""}${s.closed ? `<p>Sessione chiusa: puoi comunque correggere questa serie.</p>` : ""}</details>` : ""}
     </div>
   `;
 
@@ -1275,9 +1277,7 @@ function renderSession(){
   const sugShort = sug ? `Suggerito: ${sug.kgSuggested.toFixed(1).replace(".0","")}kg` : "";
 
   $("exTarget").textContent =
-    `Target: ${t.sets}x ${t.repMin}-${t.repMax} • Rec ${t.rest}` +
-    (histLine ? `  —  ${histLine}` : "") +
-    (sugShort ? `  —  ${sugShort}` : "");
+    `${t.sets} serie · ${t.repMin}–${t.repMax} rip. · Recupero ${t.rest}`;
 
   // Evita di riarmare un timer terminato; all'inizio mostra il recupero dell'esercizio.
   if(!state.ui.restTimer || sid(state.ui.restTimer.sessionId)!==sid(s.id)){
@@ -1292,6 +1292,11 @@ function renderSession(){
   }
 
   renderSingleSet();
+  const picker=$("singleSetBox")?.querySelector(".setPicker");
+  const selected=picker?.querySelector(".setChip.active");
+  if(picker && selected){
+    picker.scrollLeft=Math.max(0, selected.offsetLeft-picker.offsetLeft-(picker.clientWidth-selected.clientWidth)/2);
+  }
   const sCount=it.sets.length;
   if($("btnPrevSet"))$("btnPrevSet").disabled=state.activeSetIndex===0;
   if($("btnNextSet"))$("btnNextSet").disabled=state.activeSetIndex===sCount-1;

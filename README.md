@@ -1,90 +1,43 @@
-# Fit Planner Premium v38 — iPhone-style refinements + nuovo branding (27/10/2026)
+# Fit Planner Premium v39 — navigazione chiara e allenamento stabile
 
-Questo aggiornamento è una **patch incrementale della v37**, non una riscrittura. Lo ZIP contiene **solo** i file modificati o aggiunti, mantenendo i percorsi originali del progetto.
+Aggiornamento incrementale della **v38** del 27/10/2026. Non è un nuovo progetto né un reset dei dati. Lo ZIP contiene solo i file modificati e nuovi, conservando i percorsi `FIT-P-main/`.
 
-## Contenuto dello ZIP
-
-- `FIT-P-main/app.js`
-- `FIT-P-main/index.html`
-- `FIT-P-main/styles.css`
-- `FIT-P-main/sw.js`
-- `FIT-P-main/manifest.webmanifest`
-- `FIT-P-main/README.md`
-- `FIT-P-main/brand-mark.svg`
-- `FIT-P-main/icon-192.png`
-- `FIT-P-main/icon-512.png`
-
-## Novità principali della v38
-
-- Pulsante **Impostazioni** riportato in una posizione più discreta e coerente con il layout precedente: resta nell'header, ma non occupa più troppo spazio su iPhone.
-- Restyling ancora più **mobile-first / iPhone-style**: header più pulito, card più compatte, barra inferiore più elegante e shell visiva più simile a un'app nativa.
-- Nuovo **simbolo/logo Fit Planner** più gradevole rispetto al vecchio riquadro con `FP`.
-- Nuove icone PWA `icon-192.png` e `icon-512.png`, coerenti con il nuovo branding.
-- Tutte le migliorie della v37 restano attive: **date in formato `GG/MM/AAAA`**, **pasti nominabili**, **selezione di tutti i pasti del giorno**, **navigazione tra le serie** durante modifica e sessione.
-
-## Installazione / aggiornamento
-
-1. Dalla tua versione attuale apri **Impostazioni → Esporta JSON** e salva un backup leggibile.
-2. Sostituisci **insieme** tutti i file dello ZIP nella stessa cartella del progetto.
-3. Se la PWA era già installata, aprila in Safari o dal link originale e usa il pulsante **Aggiorna app** quando compare l'avviso.
-4. In **Impostazioni** controlla che compaia la versione **v38**.
-5. Verifica che schede, diete, sessioni, pasti consumati e lista della spesa siano ancora presenti.
-
-La chiave `localStorage` resta **`fitplanner_v7`**. Non cambiare dominio, percorso base o origine web dell'app, altrimenti i dati locali del browser non saranno gli stessi.
-
-## Cosa è stato modificato per file
+## Modifiche v39
 
 | File | Modifiche |
 | --- | --- |
-| `app.js` | Mantiene tutte le logiche v37 e continua a gestire date italiane, pasti nominabili e flussi allenamento/dieta/spesa. |
-| `index.html` | Header rivisto con pulsante Impostazioni più compatto, nuovo marchio nell'intestazione, versione aggiornata a v38. |
-| `styles.css` | Affinamento grafico mobile-first, header più leggero, logo nuovo, pulsante Impostazioni più elegante, shell ancora più iPhone-style. |
-| `sw.js` | Cache aggiornata a `fitplanner-static-v38-20261027` e inclusione del nuovo asset `brand-mark.svg`. |
-| `manifest.webmanifest` | Mantiene il setup mobile e aggiunge descrizione più chiara per la PWA. |
-| `brand-mark.svg` | Nuovo simbolo grafico di Fit Planner usato nell'header. |
-| `icon-192.png` | Nuova icona PWA 192×192 coerente con il nuovo branding. |
-| `icon-512.png` | Nuova icona PWA 512×512 coerente con il nuovo branding. |
-| `README.md` | Documentazione aggiornata per la v38. |
+| `index.html` | Barra inferiore ripristinata in uno stile semplice con cinque etichette e icone riconoscibili; Impostazioni con un unico ingranaggio compatto; timer riorganizzato su una riga; esercizi e comandi meglio distinti; versione v39; icona Apple dedicata. |
+| `styles.css` | Ripristino barra inferiore senza dock flottante; layout dell'allenamento con colonna flessibile stabile, timer compatto, area esercizio scorrevole e comandi sempre allineati; adattamenti per 320–430 px e schermi bassi. |
+| `app.js` | Adattamento dell'altezza del pannello allenamento alla viewport visibile in iOS, suggerimenti spostati in sezione apribile, target esercizio più conciso, selettore serie centrato; logica dati invariata. |
+| `sw.js` | Versione cache `fitplanner-static-v39-20261027` e nuovo asset per icona iPhone. |
+| `brand-mark.svg` | Logo semplificato: un manubrio riconoscibile, senza lettere astratte. |
+| `icon-192.png` | Icona PWA aggiornata. |
+| `icon-512.png` | Icona PWA aggiornata. |
+| `apple-touch-icon.png` | Nuova icona 180×180 per la schermata Home di iPhone. |
+| `README.md` | Changelog e test aggiornati. |
 
-## Verifiche manuali consigliate su iPhone
+`manifest.webmanifest` e gli altri file del progetto **non sono stati modificati** e devono rimanere nella cartella esistente.
 
-### 1) Header e impostazioni
-- Apri la Home e controlla che **Impostazioni** non occupi più tutta la larghezza.
-- Verifica che il nuovo pulsante sia più discreto e comodo.
-- Controlla che il nuovo logo sia visivamente gradevole sia in chiaro che in scuro.
+## Cosa verificare su iPhone
 
-### 2) Branding e icona app
-- Se l'app è installata sulla Home di iPhone, aggiorna la PWA e verifica che dopo il refresh compaia la **nuova icona**.
-- Controlla che il simbolo sia coerente anche nell'intestazione interna dell'app.
+1. **Prima dell'aggiornamento**, da Impostazioni esporta un backup JSON e verifica che sia leggibile. Mantieni l'indirizzo esatto del sito: `localStorage` non segue automaticamente un cambio di dominio/percorso.
+2. Sostituisci tutti i file presenti nello ZIP, mantenendo le cartelle originali. Apri Safari sull'indirizzo esistente e usa **Aggiorna app** se appare il relativo avviso. Controlla che la versione sia `v39` in Impostazioni.
+3. **Barra delle pagine:** devono comparire `Home`, `Palestra`, `Dieta`, `Spesa`, `Progressi`, con icone evidenti e non ambigue. Impostazioni deve essere un piccolo pulsante nell'angolo superiore destro, non una riga aggiuntiva.
+4. **Allenamento:** avvia una sessione con più esercizi e 3–4 serie. Il timer deve stare in alto, su una riga compatta. Prova Start, Pausa e Salta. Verifica che i campi kg/reps siano grandi e che i comandi Salva, Serie precedente, Serie successiva ed Esercizio successivo non si spostino dopo le azioni.
+5. **Tastiera iPhone:** tocca il campo Kg e il campo Reps. Verifica che la tastiera non copra permanentemente il campo attivo o il tasto necessario e che, richiusa la tastiera, il layout torni stabile.
+6. **Persistenza:** compila una serie, passa alla successiva e torna indietro; i dati devono restare. Chiudi l'allenamento, aprilo dallo storico e controlla le serie salvate.
+7. **Dieta e Spesa:** verifica che i nomi personalizzati dei pasti, le spunte `Consumato`, gli articoli della spesa e le scorte siano rimasti. Le date devono continuare a comparire come `GG/MM/AAAA`.
+8. **Icona:** se la PWA è già installata sulla Home, iOS può mantenere l'icona precedente nella cache. Prima di valutare il risultato, apri e aggiorna il sito. Non eliminare l'app o i suoi dati prima di aver verificato il backup.
+9. **Offline:** dopo aver visitato online la v39 e completato l'aggiornamento, riapri la PWA in modalità aereo e verifica l'avvio. Non cancellare la cache manualmente durante questa prova.
 
-### 3) Date italiane
-- Home, storico, sessioni, dieta, grafici e spesa devono mostrare le date come `GG/MM/AAAA`.
-- Nella Spesa prova un valore non valido come `31/02/2026`: deve essere rifiutato.
+## Verifiche tecniche eseguite
 
-### 4) Pasti nominabili
-- Vai in **Le mie diete → Modifica**.
-- Seleziona un pasto e rinominalo, ad esempio `Colazione`, `Pranzo`, `Cena`, `Spuntino pomeriggio`.
-- Salva e controlla che il nome compaia anche nella schermata giornaliera della Dieta.
+- Controllo di sintassi JavaScript con Node.js.
+- Verifica delle nuove dimensioni delle icone PWA e Apple.
+- Test di interazione in Chromium headless con HTML/CSS/JavaScript caricati localmente nella pagina senza navigazione HTTP: viewport **320×568, 375×667, 390×844 e 430×932 px**. In questi test il footer della sessione resta allineato e non vengono rilevati errori JavaScript.
+- Test di salvataggio serie, passaggio serie precedente/successiva, Start/Pausa/Salta, passaggio esercizio, chiusura sessione, persistenza del carico, rinomina dei pasti e spunte consumati.
+- Non è stato possibile verificare il Service Worker installato tramite un vero URL navigabile a causa delle restrizioni dell'ambiente, né provare su iPhone fisico/Safari. Questi test rimangono necessari.
 
-### 5) Pasti consumati
-- In **Dieta** scegli un giorno.
-- Verifica che vengano mostrati **tutti i pasti del giorno insieme**.
-- Segna come consumati più pasti diversi senza doverli filtrare prima.
-- Chiudi e riapri l'app: le selezioni devono restare salvate.
+## Sicurezza dati
 
-### 6) Serie allenamento
-- Apri una sessione o modifica dallo storico.
-- Passa tra le serie con **← Serie** e **Serie →**.
-- Verifica che si possa modificare la singola serie senza saltare subito all'esercizio successivo.
-
-### 7) Lista spesa
-- Controlla che la sezione Spesa mantenga quantità, articoli manuali, scorte e spunte dopo ricalcolo e riavvio.
-
-## Verifiche tecniche realmente eseguite
-
-- **Superati**: controllo sintassi JavaScript con Node.js; validazione formale del `manifest.webmanifest`; generazione e sostituzione dei nuovi asset grafici; verifica della presenza del nuovo asset `brand-mark.svg` nella cache del Service Worker.
-- **Non eseguiti in modo reale su dispositivo**: test fisici su iPhone/Safari, installazione PWA su schermata Home e verifica visuale finale delle nuove icone. Questi controlli vanno fatti sul telefono.
-
-## Nota finale
-
-Questa versione punta a migliorare l'esperienza **reale da mobile**, senza cambiare l'architettura offline-first né rompere i dati esistenti. Prima di adottarla definitivamente, fai comunque una prova completa sul tuo iPhone con il backup JSON a portata di mano.
+La chiave di salvataggio resta **`fitplanner_v7`**. La struttura esistente di schede, diete e sessioni non è stata sostituita. Salva comunque un backup JSON prima di aggiornare: è il modo più sicuro per recuperare i dati nel caso un dispositivo elimini la propria memoria locale.
