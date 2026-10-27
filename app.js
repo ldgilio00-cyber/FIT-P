@@ -456,6 +456,7 @@ function getExerciseDailySeries(exName){
     let sum = 0;
     let n = 0;
     let volume = 0;
+    let volumeCount = 0;
 
     for (const it of (s.items||[])){
       if (normName(it.ex) !== name) continue;
@@ -467,7 +468,7 @@ function getExerciseDailySeries(exName){
         best = Math.max(best, kg);
         sum += kg;
         n += 1;
-        if (isFinite(reps)) volume += kg * reps;
+        if (isFinite(reps) && reps > 0) { volume += kg * reps; volumeCount += 1; }
       }
     }
 
@@ -478,7 +479,7 @@ function getExerciseDailySeries(exName){
       date: s.date || "",
       best,
       avg: n ? (sum/n) : 0,
-      volume
+      volume, volumeCount
     });
   }
 
@@ -504,229 +505,169 @@ function niceTicks(min, max, count){
   return ticks;
 }
 
-function attachChartInteractions(canvas){
-  if (!canvas || canvas._fp_bound) return;
-  canvas._fp_bound = true;
-
-  const pick = (evt) => {
-    const meta = canvas._fp_meta;
-    if (!meta || !meta.points?.length) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = (evt.touches?.[0]?.clientX ?? evt.clientX) - rect.left;
-    const y = (evt.touches?.[0]?.clientY ?? evt.clientY) - rect.top;
-
-    let best = null;
-    for (const p of meta.points){
-      const dx = x - p.cx;
-      const dy = y - p.cy;
-      const d2 = dx*dx + dy*dy;
-      if (best === null || d2 < best.d2) best = { d2, p };
-    }
-    if (!best) return;
-
-    // raggio click comodo (in px css)
-    const r = 18;
-    if (best.d2 <= r*r){
-      toast(`${best.p.label}`);
-    }
-  };
-
-  canvas.addEventListener("click", pick, { passive:true });
-  canvas.addEventListener("touchstart", pick, { passive:true });
+/* Progressi: grafico responsive, dettagli in una riga HTML, non nel canvas. */
+let progressRange = "12";
+let progressChartFrame = 0;
+let progressChartObserver = null;
+let progressCurrentRows = [];
+let progressCurrentMode = "best";
+function progressNum(value,mode="best"){
+  const n=Number(value);
+  if(!Number.isFinite(n))return "—";
+  return (mode==="volume"?Math.round(n):Math.round(n*10)/10).toLocaleString("it-IT",{maximumFractionDigits:1});
 }
-
-function drawChart(canvas, rows, mode){
-  if(!canvas) return;
-  const ctx = canvas.getContext("2d");
-
-  const cssW = canvas.clientWidth || canvas.parentElement?.clientWidth || 320;
-  const cssH = canvas.clientHeight || Number(canvas.getAttribute("height")) || 140;
-
-  const w = canvas.width = Math.round(cssW * devicePixelRatio);
-  const h = canvas.height = Math.round(cssH * devicePixelRatio);
-  ctx.clearRect(0,0,w,h);
-
+function progressUnit(mode){return mode==="volume"?"kg × rip.":"kg";}
+function progressDateLabel(value){return displayDate(value||"")||"Data sconosciuta";}
+function selectChartPoint(canvas,index){
+  const points=canvas?._fp_meta?.points||[];
+  if(!points.length)return;
+  const p=points[Math.max(0,Math.min(points.length-1,index))];
+  canvas._fp_meta.selected=p.i;
+  const detail=$("progressPointDetail");
+  if(detail)detail.textContent=`${progressDateLabel(p.row.date)} · Punto ${p.i+1} di ${points.length} · ${progressNum(p.row[progressCurrentMode],progressCurrentMode)} ${progressUnit(progressCurrentMode)}`;
+  drawChart(canvas,progressCurrentRows,progressCurrentMode,p.i);
+}
+function attachChartInteractions(canvas){
+  if(!canvas || canvas._fp_bound)return;
+  canvas._fp_bound=true;
+  const pick=event=>{
+    const meta=canvas._fp_meta;
+    if(!meta?.points?.length)return;
+    const x=(event.changedTouches?.[0]?.clientX??event.clientX)-canvas.getBoundingClientRect().left;
+    // Per iPhone è più facile scegliere una data tramite coordinata orizzontale.
+    const chosen=meta.points.reduce((a,b)=>Math.abs(b.cx-x)<Math.abs(a.cx-x)?b:a);
+    selectChartPoint(canvas,chosen.i);
+  };
+  canvas.addEventListener("click",pick);
+  canvas.addEventListener("keydown",event=>{
+    if(!["ArrowLeft","ArrowRight"].includes(event.key))return;
+    event.preventDefault();
+    const n=canvas._fp_meta?.points?.length||0;
+    if(!n)return;
+    const current=canvas._fp_meta.selected??(n-1);
+    selectChartPoint(canvas,Math.max(0,Math.min(n-1,current+(event.key==="ArrowLeft"?-1:1))));
+  });
+  canvas.tabIndex=0;
+}
+function drawChart(canvas,rows,mode,selectedIndex){
+  if(!canvas)return;
+  const ctx=canvas.getContext("2d");if(!ctx)return;
+  const width=Math.max(0,canvas.getBoundingClientRect().width||canvas.clientWidth||0);
+  const height=Math.max(0,canvas.getBoundingClientRect().height||canvas.clientHeight||0);
+  if(width<10||height<10)return; // Non disegnare durante una transizione nascosta.
+  const dpr=Math.min(window.devicePixelRatio||1,3);
+  const pxW=Math.round(width*dpr),pxH=Math.round(height*dpr);
+  if(canvas.width!==pxW||canvas.height!==pxH){canvas.width=pxW;canvas.height=pxH;}
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,width,height);
+  const style=getComputedStyle(canvas),ink=style.color||"#d4def1";
+  const muted=getComputedStyle(document.documentElement).getPropertyValue("--muted").trim()||"#8b9ab4";
+  const accent=getComputedStyle(document.documentElement).getPropertyValue("--primary").trim()||"#6396ff";
+  const unit=progressUnit(mode);
   if(!rows.length){
-    ctx.globalAlpha = 0.7;
-    ctx.font = `${14*devicePixelRatio}px system-ui`;
-    ctx.fillText("Nessun dato per questo esercizio.", 12*devicePixelRatio, 28*devicePixelRatio);
-    ctx.globalAlpha = 1;
-    canvas._fp_meta = { points: [] };
-    return;
+    ctx.fillStyle=muted;ctx.font="13px -apple-system,system-ui,sans-serif";
+    ctx.fillText("Nessun dato per questo esercizio.",12,Math.round(height/2));
+    canvas._fp_meta={points:[],selected:null};return;
   }
-
-  // padding più ricco per assi/etichette
-  const padL = 42*devicePixelRatio;
-  const padR = 14*devicePixelRatio;
-  const padT = 22*devicePixelRatio;
-  const padB = 54*devicePixelRatio;
-
-  const ys = rows.map(r=>r[mode]);
-  const yMin0 = Math.min(...ys);
-  const yMax0 = Math.max(...ys);
-  const yPad = (yMax0 - yMin0) * 0.18 || 1;
-
-  const min = Math.max(0, yMin0 - yPad);
-  const max = yMax0 + yPad;
-
-  const xTo = (i) => padL + (i/(Math.max(1, rows.length-1))) * (w - padL - padR);
-  const yTo = (v) => (h - padB) - ((v - min) / (max - min)) * (h - padT - padB);
-
-  // griglia + ticks
-  const ticks = niceTicks(min, max, 5);
-
-  ctx.globalAlpha = 0.18;
-  ctx.lineWidth = 1*devicePixelRatio;
-  ctx.beginPath();
-  // vertical axis
-  ctx.moveTo(padL, padT);
-  ctx.lineTo(padL, h-padB);
-  // horizontal axis
-  ctx.lineTo(w-padR, h-padB);
-  ctx.stroke();
-
-  // horizontal grid lines + labels
-  ctx.font = `${11*devicePixelRatio}px system-ui`;
-  ctx.globalAlpha = 0.22;
-  for (const t of ticks){
-    const y = yTo(t);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(w-padR, y);
-    ctx.stroke();
-
-    ctx.globalAlpha = 0.7;
-    const txt = (t >= 1000) ? t.toFixed(0) : t.toFixed(1).replace(".0","");
-    ctx.fillText(txt, 6*devicePixelRatio, y + 4*devicePixelRatio);
-    ctx.globalAlpha = 0.22;
+  // La zona del grafico usa coordinate CSS: il testo non si sovrappone anche a 320px.
+  const L=width<360?39:46,R=12,T=15,B=37,plotW=Math.max(30,width-L-R),plotH=Math.max(35,height-T-B);
+  const values=rows.map(r=>Number(r[mode])||0);
+  const low=Math.min(...values),high=Math.max(...values);
+  const pad=Math.max((high-low)*0.15,mode==="volume"?5:0.8);
+  const min=Math.max(0,low-pad),max=Math.max(high+pad,min+1);
+  const xAt=i=>L+(rows.length===1?plotW/2:(i/(rows.length-1))*plotW);
+  const yAt=v=>T+plotH-((v-min)/(max-min))*plotH;
+  ctx.textBaseline="middle";ctx.font="11px -apple-system,system-ui,sans-serif";
+  for(let j=0;j<=3;j++){
+    const value=min+((max-min)/3)*j,y=yAt(value);
+    ctx.strokeStyle="rgba(147,164,196,.20)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(width-R,y);ctx.stroke();
+    ctx.fillStyle=muted;ctx.textAlign="right";ctx.fillText(progressNum(value,mode),L-7,y);
   }
-  ctx.globalAlpha = 1;
-
-  // linea
-  ctx.lineWidth = 2*devicePixelRatio;
-  ctx.beginPath();
+  if(rows.length>1){
+    ctx.strokeStyle=accent;ctx.lineWidth=2.5;ctx.lineJoin="round";
+    ctx.beginPath();rows.forEach((r,i)=>{const x=xAt(i),y=yAt(values[i]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.stroke();
+  }
+  const points=[];
+  // Molti allenamenti non devono creare una massa illeggibile di pallini.
+  const stride=rows.length>55?Math.ceil(rows.length/55):1;
   rows.forEach((r,i)=>{
-    const x=xTo(i), y=yTo(r[mode]);
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    const x=xAt(i),y=yAt(values[i]);
+    const highlighted=i===(selectedIndex??rows.length-1);
+    if(i%stride===0||i===rows.length-1||highlighted){
+      ctx.beginPath();ctx.arc(x,y,highlighted?5.4:rows.length>25?2.3:3.6,0,Math.PI*2);
+      ctx.fillStyle=highlighted?"#ffffff":accent;ctx.fill();
+      if(highlighted){ctx.strokeStyle=accent;ctx.lineWidth=2.5;ctx.stroke();}
+    }
+    points.push({i,cx:x,cy:y,row:r,globalIndex:i});
   });
-  ctx.stroke();
-
-  // punti + meta per tooltip
-  const points = [];
-  rows.forEach((r,i)=>{
-    const x=xTo(i), y=yTo(r[mode]);
-    ctx.beginPath();
-    ctx.arc(x,y,4.8*devicePixelRatio,0,Math.PI*2);
-    ctx.fill();
-
-    const val = r[mode];
-    const vTxt = (mode === "volume")
-      ? `${Math.round(val)}`
-      : `${val.toFixed(1).replace(".0","")}`;
-    points.push({
-      cx: x/devicePixelRatio,
-      cy: y/devicePixelRatio,
-      label: `${displayDate(r.date)} • ${mode.toUpperCase()}: ${vTxt}`
-    });
+  ctx.font="10px -apple-system,system-ui,sans-serif";ctx.fillStyle=muted;
+  ctx.textBaseline="alphabetic";
+  [0,Math.floor((rows.length-1)/2),rows.length-1].filter((v,i,arr)=>arr.indexOf(v)===i).forEach(i=>{
+    ctx.textAlign=i===0?"left":i===rows.length-1?"right":"center";
+    ctx.fillText(displayDate(rows[i].date)||"—",xAt(i),height-10);
   });
-
-  // labels top summary
-  const first = rows[0][mode];
-  const last = rows[rows.length-1][mode];
-  const lo = Math.min(...ys);
-  const hi = Math.max(...ys);
-  const delta = last - first;
-  const sign = delta >= 0 ? "+" : "";
-
-  ctx.font = `${12*devicePixelRatio}px system-ui`;
-  ctx.globalAlpha = 0.9;
-
-  const lastTxt = (mode==="volume")
-    ? `Ultimo: ${Math.round(last)}`
-    : `Ultimo: ${last.toFixed(1).replace(".0","")}`;
-  const rangeTxt = (mode==="volume")
-    ? `Min/Max: ${Math.round(lo)}–${Math.round(hi)}`
-    : `Min/Max: ${lo.toFixed(1).replace(".0","")}–${hi.toFixed(1).replace(".0","")}`;
-  const deltaTxt = (mode==="volume")
-    ? `Δ: ${sign}${Math.round(delta)}`
-    : `Δ: ${sign}${delta.toFixed(1).replace(".0","")}`;
-
-  const head = `${rows.length} sessioni • ${deltaTxt} • ${rangeTxt} • ${lastTxt}`;
-  ctx.fillText(head, padL, 16*devicePixelRatio);
-  ctx.globalAlpha = 1;
-
-  // x labels (solo alcuni per non affollare)
-  ctx.globalAlpha = 0.7;
-  ctx.font = `${10.5*devicePixelRatio}px system-ui`;
-  const step = Math.ceil(rows.length / 3);
-  for (let i=0;i<rows.length;i+=step){
-    const x = xTo(i);
-    const txt = shortDate(rows[i].date) || String(i+1);
-    ctx.save();
-    ctx.translate(x, h - 7*devicePixelRatio);
-    ctx.rotate(-Math.PI/4);
-    ctx.textAlign = i >= rows.length-2 ? "right" : "left";
-    ctx.fillText(txt, 0, 0);
-    ctx.restore();
-  }
-  ctx.globalAlpha = 1;
-
-  // salva meta per tooltip
-  canvas._fp_meta = { points };
+  canvas._fp_meta={points,selected:selectedIndex??rows.length-1};
   attachChartInteractions(canvas);
 }
-
 function renderExerciseProgressUI(){
-  const sel = $("exProgressSelect");
-  const modeSel = $("exProgressMode");
-  const sum = $("exProgressSummary");
-  const canvas = $("exProgressChart");
-  if(!sel || !modeSel || !sum || !canvas) return;
-
-  const names = getAllExerciseNames();
-  sel.innerHTML = "";
-  names.forEach(n=>{
-    const o=document.createElement("option");
-    o.value=n; o.textContent=n;
-    sel.appendChild(o);
-  });
-
-  if (state.ui.exProgMode) modeSel.value = state.ui.exProgMode;
-  if (state.ui.exProgName && names.includes(state.ui.exProgName)) sel.value = state.ui.exProgName;
-  if (!sel.value && names[0]) sel.value = names[0];
-
-  const refresh = ()=>{
-    state.ui.exProgName = sel.value;
-    state.ui.exProgMode = modeSel.value;
+  const sel=$("exProgressSelect"),modeSel=$("exProgressMode"),sum=$("exProgressSummary"),canvas=$("exProgressChart");
+  if(!sel||!modeSel||!sum||!canvas)return;
+  const names=getAllExerciseNames();
+  const previous=sel.value||state.ui.exProgName;
+  sel.replaceChildren();
+  if(!names.length){const option=document.createElement("option");option.value="";option.textContent="Nessun esercizio";sel.appendChild(option);}
+  names.forEach(name=>{const option=document.createElement("option");option.value=name;option.textContent=name;sel.appendChild(option);});
+  sel.value=names.includes(previous)?previous:names.includes(state.ui.exProgName)?state.ui.exProgName:names[0]||"";
+  modeSel.value=["best","avg","volume"].includes(state.ui.exProgMode)?state.ui.exProgMode:"best";
+  const detail=$("progressPointDetail");
+  const refresh=()=>{
+    state.ui.exProgName=sel.value;
+    state.ui.exProgMode=modeSel.value;
     saveState();
-
-    const rows = getExerciseDailySeries(sel.value);
-    const mode = modeSel.value;
-
-    if (!rows.length){
-      sum.textContent = "Nessun dato per questo esercizio: fai almeno una sessione e inserisci i carichi.";
-    } else {
-      const ys = rows.map(r=>r[mode]);
-      const first = rows[0][mode];
-      const last = rows[rows.length-1][mode];
-      const lo = Math.min(...ys);
-      const hi = Math.max(...ys);
-      const delta = last - first;
-      const sign = delta >= 0 ? "+" : "";
-      const lastTxt = (mode==="volume") ? Math.round(last) : last.toFixed(1).replace(".0","");
-      const loTxt = (mode==="volume") ? Math.round(lo) : lo.toFixed(1).replace(".0","");
-      const hiTxt = (mode==="volume") ? Math.round(hi) : hi.toFixed(1).replace(".0","");
-      const dTxt  = (mode==="volume") ? Math.round(delta) : delta.toFixed(1).replace(".0","");
-
-      sum.textContent = `Dettagli: ${rows.length} sessioni • Δ ${sign}${dTxt} • Min ${loTxt} • Max ${hiTxt} • Ultimo ${lastTxt}`;
+    const all=sel.value?getExerciseDailySeries(sel.value):[];
+    const mode=modeSel.value;
+    // Nessuna serie con ripetizioni = volume sconosciuto, NON zero.
+    const available=mode==="volume"?all.filter(r=>r.volumeCount>0):all;
+    const visible=progressRange==="all"?available:available.slice(-Number(progressRange));
+    progressCurrentRows=visible;progressCurrentMode=mode;
+    const fmt=n=>progressNum(n,mode);
+    if(!visible.length){
+      sum.innerHTML='<p class="muted small">Nessuna prestazione registrata: completa una serie per iniziare.</p>';
+      if(detail)detail.textContent="Il grafico apparirà dopo il primo allenamento.";
+    }else{
+      const first=visible[0][mode],last=visible[visible.length-1][mode],max=Math.max(...visible.map(r=>r[mode]));
+      const delta=last-first;
+      const cells=[
+        ["Ultima",`${fmt(last)} ${progressUnit(mode)}`],
+        ["Migliore",`${fmt(max)} ${progressUnit(mode)}`],
+        ["Variazione",`${delta>0?"+":""}${fmt(delta)} ${progressUnit(mode)}`]
+      ];
+      sum.innerHTML=cells.map(([label,value])=>`<div class="progressMetric"><span>${label}</span><b>${escapeHTML(value)}</b></div>`).join("");
+      if(detail)detail.textContent=`${visible.length} ${visible.length===1?"sessione":"sessioni"} visualizzate · Tocca un punto per i dettagli.`;
     }
-
-    drawChart(canvas, rows, mode);
+    drawChart(canvas,visible,mode);
   };
-
-  sel.onchange = refresh;
-  modeSel.onchange = refresh;
+  sel.onchange=refresh;modeSel.onchange=refresh;
+  document.querySelectorAll("[data-progress-range]").forEach(btn=>{
+    const active=btn.dataset.progressRange===progressRange;
+    btn.classList.toggle("active",active);btn.setAttribute("aria-pressed",String(active));
+    btn.onclick=()=>{
+      progressRange=btn.dataset.progressRange;
+      document.querySelectorAll("[data-progress-range]").forEach(b=>{
+        b.classList.toggle("active",b===btn);b.setAttribute("aria-pressed",String(b===btn));
+      });
+      refresh();
+    };
+  });
+  if(typeof ResizeObserver!=="undefined" && !progressChartObserver){
+    progressChartObserver=new ResizeObserver(()=>{
+      if(currentView!=="progress")return;
+      cancelAnimationFrame(progressChartFrame);
+      progressChartFrame=requestAnimationFrame(()=>drawChart(canvas,progressCurrentRows,progressCurrentMode));
+    });
+    progressChartObserver.observe(canvas.parentElement);
+  }
   refresh();
 }
 
@@ -1058,6 +999,7 @@ document.addEventListener("click",(e)=>{
     closeSessionModal();
     renderHistory();
     renderPR();
+    renderExerciseProgressUI();
     homeRefresh();
     toast("Sessione eliminata");
   });
@@ -2547,61 +2489,111 @@ $("btnGroceryShare")?.addEventListener("click",async()=>{
   const text=$("groceryShareFallback");text.hidden=false;text.value=groceryText();text.select();
   toast("Condivisione non disponibile: copia il testo");
 });
-/* ---------------- progress ---------------- */
-function renderHistory(){
-  const box=$("sessionHistory"); if(!box) return;
-  box.innerHTML="";
-
-  const sessions=[...state.sessions].sort((a,b)=>{
-    const at=a.ts||0, bt=b.ts||0;
-    if(at && bt) return bt-at;
-    return (a.date<b.date)?1:-1;
-  });
-
-  if(!sessions.length){
-    box.innerHTML=`<div class="muted">Nessuna sessione.</div>`;
-    return;
-  }
-
-  sessions.slice(0,60).forEach(s=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.style.cursor = "pointer";
-    div.setAttribute("data-session-open","1");
-    div.setAttribute("data-session-id", s.id);
-
-    div.innerHTML=`
-      <div class="itemTop">
-        <div class="itemTitle">${escapeHTML(s.dayName)}</div>
-        <div class="badge">${escapeHTML(displayDate(s.date))}${s.closed?" • (chiusa)":" • (aperta)"}</div>
-      </div>
-      <div class="muted small">Tocca per aprire e modificare</div>
-    `;
-    box.appendChild(div);
-  });
+/* ---------------- Progressi: dati esistenti, layout mobile ---------------- */
+let historyFilter="all",historyLimit=12,prLimit=10;
+function historySort(a,b){
+  const at=Number(a.ts)||0,bt=Number(b.ts)||0;
+  if(at&&bt)return bt-at;
+  return String(b.date||"").localeCompare(String(a.date||""))||(bt-at);
 }
-
-function renderPR(){
-  const box=$("prBox"); if(!box) return;
-  box.innerHTML="";
+function progressTotals(){
+  const sessions=state.sessions||[];
+  const closed=sessions.filter(s=>s.closed);
+  let sets=0,volume=0;
+  const exercises=new Set();
+  sessions.forEach(s=>(s.items||[]).forEach(it=>{
+    (it.sets||[]).forEach(st=>{
+      const kg=toKg(st.kg),reps=toReps(st.reps);
+      if(Number.isFinite(kg)&&Number.isFinite(reps)&&reps>0){
+        sets++;volume+=kg*reps;exercises.add(normName(it.ex));
+      }
+    });
+  }));
+  return {closed:closed.length,sets,volume,exercises:exercises.size};
+}
+function renderProgressKpis(){
+  const box=$("progressKpis");if(!box)return;
+  const k=progressTotals();
+  const list=[
+    ["Sessioni concluse",k.closed.toLocaleString("it-IT"),"check-circle-2"],
+    ["Serie registrate",k.sets.toLocaleString("it-IT"),"dumbbell"],
+    ["Volume totale",`${Math.round(k.volume).toLocaleString("it-IT")} kg`,"activity"],
+    ["Esercizi registrati",k.exercises.toLocaleString("it-IT"),"award"]
+  ];
+  box.innerHTML=list.map(([label,value])=>`<div class="progressKpi"><span class="progressKpiLabel">${label}</span><strong>${escapeHTML(value)}</strong></div>`).join("");
+}
+function renderHistory(){
+  const box=$("sessionHistory");if(!box)return;
+  renderProgressKpis();
+  const search=String($("historySearch")?.value||"").trim().toLocaleLowerCase("it-IT");
+  const filtered=[...state.sessions].filter(s=>{
+    if(historyFilter==="closed"&&!s.closed)return false;
+    if(historyFilter==="open"&&s.closed)return false;
+    return `${s.dayName||""} ${s.planName||""} ${displayDate(s.date||"")}`.toLocaleLowerCase("it-IT").includes(search);
+  }).sort(historySort);
+  box.replaceChildren();
+  const counter=$("historyCounter");if(counter)counter.textContent=`${filtered.length}`;
+  document.querySelectorAll("[data-history-filter]").forEach(btn=>{
+    const active=btn.dataset.historyFilter===historyFilter;
+    btn.classList.toggle("active",active);btn.setAttribute("aria-pressed",String(active));
+  });
+  if(!filtered.length){box.innerHTML='<div class="progressEmpty">Nessuna sessione per questo filtro.</div>';}
+  filtered.slice(0,historyLimit).forEach(s=>{
+    const button=document.createElement("button");button.type="button";
+    button.className="progressHistoryRow";button.dataset.sessionOpen="1";button.dataset.sessionId=String(s.id);
+    const filled=(s.items||[]).reduce((sum,it)=>sum+(it.sets||[]).filter(st=>String(st.reps??"").trim()!=="").length,0);
+    const title=String(s.dayName||"Allenamento");
+    const status=s.closed?"Conclusa":"In corso";
+    button.innerHTML=`<span class="progressHistoryInfo"><b>${escapeHTML(title)}</b><small>${escapeHTML(displayDate(s.date))}${s.planName?` · ${escapeHTML(s.planName)}`:""}</small><small>${filled} ${filled===1?"serie registrata":"serie registrate"}</small></span><span class="progressHistoryMeta"><span class="progressStatus ${s.closed?"isClosed":"isOpen"}">${status}</span><span aria-hidden="true">›</span></span>`;
+    box.appendChild(button);
+  });
+  const more=$("historyShowMore");if(more){more.hidden=filtered.length<=historyLimit;more.textContent=`Mostra altre sessioni (${filtered.length-Math.min(historyLimit,filtered.length)})`;}
+}
+function computeRecords(){
   const pr=new Map();
   for(const s of state.sessions){
     for(const it of (s.items||[])){
+      const name=String(it.ex||"").trim();if(!name)continue;
       for(const st of (it.sets||[])){
         const kg=toKg(st.kg);
-        if(!isFinite(kg)) continue;
-        pr.set(it.ex, Math.max(pr.get(it.ex)||0, kg));
+        if(!Number.isFinite(kg))continue;
+        const key=normName(name);
+        const prev=pr.get(key);
+        if(!prev||kg>prev.kg)pr.set(key,{ex:name,kg,date:s.date||""});
       }
     }
   }
-  if(!pr.size){ box.innerHTML=`<div class="muted">Inserisci sessioni per PR.</div>`; return; }
-  Array.from(pr.entries()).sort((a,b)=>b[1]-a[1]).slice(0,40).forEach(([ex,kg])=>{
-    const div=document.createElement("div");
-    div.className="item";
-    div.innerHTML=`<div class="itemTop"><div class="itemTitle">${escapeHTML(ex)}</div><div class="badge">${kg.toFixed(1).replace(".0","")} kg</div></div>`;
-    box.appendChild(div);
-  });
+  return [...pr.values()].sort((a,b)=>b.kg-a.kg||a.ex.localeCompare(b.ex,"it"));
 }
+function renderPR(){
+  const box=$("prBox");if(!box)return;
+  const search=String($("prSearch")?.value||"").trim().toLocaleLowerCase("it-IT");
+  const records=computeRecords().filter(r=>r.ex.toLocaleLowerCase("it-IT").includes(search));
+  box.replaceChildren();
+  const count=$("prCounter");if(count)count.textContent=`${records.length}`;
+  if(!records.length){box.innerHTML='<div class="progressEmpty">Nessun record per questo esercizio.</div>';}
+  records.slice(0,prLimit).forEach(r=>{
+    const button=document.createElement("button");button.type="button";button.className="progressPrRow";
+    button.dataset.progressExercise=r.ex;
+    button.innerHTML=`<span class="progressPrInfo"><b>${escapeHTML(r.ex)}</b><small>${escapeHTML(displayDate(r.date))}</small></span><span class="progressPrResult"><strong>${escapeHTML(progressNum(r.kg))} kg</strong><small>Vedi grafico ›</small></span>`;
+    box.appendChild(button);
+  });
+  const more=$("prShowMore");if(more){more.hidden=records.length<=prLimit;more.textContent=`Mostra altri record (${records.length-Math.min(prLimit,records.length)})`;}
+}
+$("historySearch")?.addEventListener("input",()=>{historyLimit=12;renderHistory();});
+$("prSearch")?.addEventListener("input",()=>{prLimit=10;renderPR();});
+$("historyShowMore")?.addEventListener("click",()=>{historyLimit+=12;renderHistory();});
+$("prShowMore")?.addEventListener("click",()=>{prLimit+=10;renderPR();});
+document.querySelectorAll("[data-history-filter]").forEach(btn=>btn.addEventListener("click",()=>{
+  historyFilter=btn.dataset.historyFilter;historyLimit=12;renderHistory();
+}));
+$("prBox")?.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-progress-exercise]");if(!btn)return;
+  const sel=$("exProgressSelect");if(!sel)return;
+  sel.value=btn.dataset.progressExercise;
+  sel.dispatchEvent(new Event("change"));
+  document.querySelector(".progressChartCard")?.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+});
 
 /* ---------------- home & settings ---------------- */
 function refreshHomeSessionButton(){

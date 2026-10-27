@@ -1263,3 +1263,109 @@ button:focus-visible, input:focus-visible, select:focus-visible {outline:2px sol
 #session.keyboard-editing .setsTableCard{overflow:visible!important;}
 #session.keyboard-editing .setEditingTools{position:sticky!important;top:0;z-index:12;
   border-radius:11px;box-shadow:0 5px 13px rgba(0,0,0,.22);}
+
+/* ======================================================================
+   Fit Planner v42 · Progressi adattivi iPhone / desktop
+   Nessuna tabella a larghezza fissa; aree touch >= 44px.
+   ====================================================================== */
+#view-progress{
+  overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+#view-progress .progressPage{
+  display:flex;flex-direction:column;gap:15px;
+  max-width:1060px;width:100%;min-width:0;margin:0 auto;
+  padding-bottom:calc(14px + env(safe-area-inset-bottom));
+}
+#view-progress .progressPageHead{padding:5px 2px 0;}
+#view-progress .progressPageHead .eyebrow{font-size:10px;font-weight:800;letter-spacing:.17em;color:var(--primary);}
+#view-progress .progressPageHead h2{font-size:31px;letter-spacing:-.06em;line-height:1.05;margin:7px 0 4px;font-weight:800;}
+#view-progress .progressPageHead p{margin:0;font-size:13px;line-height:1.45;}
+#view-progress .progressKpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+#view-progress .progressKpi{
+  min-width:0;background:var(--card);border:1px solid var(--line);
+  border-radius:18px;padding:14px 13px;display:flex;flex-direction:column;gap:8px;
+  box-shadow:var(--shadow);
+}
+#view-progress .progressKpiLabel{font-size:11px;color:var(--muted);font-weight:680;letter-spacing:-.005em;}
+#view-progress .progressKpi strong{font-size:clamp(18px,5.2vw,26px);line-height:1.12;letter-spacing:-.045em;font-weight:790;
+  overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+#view-progress .progressCard{padding:17px 16px;border-radius:22px;min-width:0;overflow:hidden;}
+#view-progress .progressTitleRow{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin:0 0 12px;}
+#view-progress .progressTitleRow>div{min-width:0;}
+#view-progress .progressTitleRow h2{font-size:20px;line-height:1.15;margin:0 0 5px;letter-spacing:-.04em;}
+#view-progress .progressTitleRow p{margin:0;line-height:1.4;font-size:12px;}
+#view-progress .progressFilters{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0;}
+#view-progress .progressFilters .field{min-width:0;width:100%;margin:0;}
+#view-progress .progressFilters .field select{width:100%;min-width:0;min-height:48px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);font-size:16px;}
+#view-progress .progressPeriod{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:4px;
+  padding:4px;background:var(--surface3);border:1px solid var(--line);border-radius:15px;margin:10px 0 13px;}
+#view-progress .progressPeriodBtn{min-width:0;min-height:43px;padding:8px 3px;border-radius:11px;border:0;background:transparent;
+  color:var(--muted);font-size:12px;font-weight:735;cursor:pointer;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;}
+#view-progress .progressPeriodBtn.active{background:var(--primary);color:#fff;box-shadow:0 3px 10px rgba(49,87,184,.13);}
+#view-progress .progressPeriodBtn:focus-visible,#view-progress .progressHistoryRow:focus-visible,
+#view-progress .progressPrRow:focus-visible{outline:2px solid var(--primary);outline-offset:2px;}
+#view-progress .progressSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-bottom:12px;}
+#view-progress .progressSummary>p{grid-column:1/-1;margin:5px 0 10px;}
+#view-progress .progressMetric{min-width:0;padding:10px 7px;border-radius:13px;background:var(--surface3);border:1px solid var(--line);}
+#view-progress .progressMetric span{display:block;color:var(--muted);font-size:10px;line-height:1.3;margin-bottom:5px;}
+#view-progress .progressMetric b{display:block;font-size:clamp(11px,3.4vw,15px);font-weight:775;line-height:1.3;
+  overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+#view-progress .progressCanvasWrap{position:relative;min-width:0;width:100%;border:1px solid var(--line);border-radius:16px;
+  background:var(--surface3);padding:8px 7px;overflow:hidden;}
+#view-progress #exProgressChart{display:block;width:100%;height:210px;max-width:100%;color:var(--text);touch-action:pan-y;outline-offset:-2px;}
+#view-progress .progressPointDetail{min-height:34px;display:flex;align-items:center;margin-top:9px;padding:8px 11px;
+  border-radius:12px;background:var(--surface3);color:var(--muted);font-size:12px;line-height:1.45;overflow-wrap:anywhere;}
+#view-progress .progressLists{display:grid;grid-template-columns:minmax(0,1fr);gap:15px;min-width:0;}
+#view-progress .progressCount{border-radius:20px;background:var(--primarySoft);color:var(--primary);
+  font-size:12px;font-weight:790;padding:6px 10px;min-width:35px;text-align:center;flex:0 0 auto;}
+#view-progress .progressSearch{display:block;width:100%;min-width:0;margin:0 0 12px;}
+#view-progress .progressSearch input{width:100%;min-width:0;min-height:48px;padding:11px 14px;
+  border-radius:13px;font-size:16px;background:var(--surface3);color:var(--text);}
+#view-progress .progressHistoryFilters{margin:0 0 11px;}
+#view-progress .progressRows{display:flex;flex-direction:column;gap:8px;min-width:0;}
+#view-progress .progressHistoryRow,#view-progress .progressPrRow{
+  width:100%;min-width:0;border:1px solid var(--line);border-radius:15px;padding:12px;
+  background:var(--surface3);color:var(--text);text-align:left;display:flex;
+  align-items:center;justify-content:space-between;gap:9px;cursor:pointer;
+  font:inherit;min-height:69px;
+}
+#view-progress .progressHistoryInfo,#view-progress .progressPrInfo{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 auto;}
+#view-progress .progressHistoryInfo b,#view-progress .progressPrInfo b{font-size:14px;line-height:1.3;
+  font-weight:755;overflow-wrap:anywhere;}
+#view-progress .progressHistoryInfo small,#view-progress .progressPrInfo small{color:var(--muted);
+  font-size:11px;line-height:1.4;overflow-wrap:anywhere;}
+#view-progress .progressHistoryMeta{display:flex;align-items:center;gap:6px;flex:0 0 auto;color:var(--muted);font-size:25px;}
+#view-progress .progressStatus{display:block;font-size:10px;font-weight:770;padding:6px 7px;border-radius:20px;
+  white-space:nowrap;background:var(--badgeBg);color:var(--muted);}
+#view-progress .progressStatus.isOpen{background:var(--primarySoft);color:var(--primary);}
+#view-progress .progressPrResult{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px;max-width:43%;}
+#view-progress .progressPrResult strong{font-size:15px;font-weight:780;font-variant-numeric:tabular-nums;white-space:nowrap;}
+#view-progress .progressPrResult small{color:var(--primary);font-size:10px;white-space:nowrap;}
+#view-progress .progressMore{width:100%;margin-top:10px;min-height:47px;font-size:13px;}
+#view-progress .progressMore[hidden]{display:none!important;}
+#view-progress .progressEmpty{padding:24px 14px;text-align:center;color:var(--muted);font-size:13px;
+  border:1px dashed var(--line);border-radius:15px;}
+@media (max-width:359px){
+  #view-progress .progressCard{padding:14px 11px;}
+  #view-progress .progressMetric{padding:9px 5px;}
+  #view-progress .progressKpi{padding:12px 10px;}
+  #view-progress .progressPeriodBtn{font-size:11px;}
+  #view-progress .progressHistoryRow,#view-progress .progressPrRow{padding:10px;gap:6px;}
+  #view-progress .progressStatus{font-size:9px;padding:5px;}
+  #view-progress .progressPrResult strong{font-size:13px;}
+}
+@media (min-width:640px){
+  #view-progress .progressKpis{grid-template-columns:repeat(4,minmax(0,1fr));}
+  #view-progress .progressFilters{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);}
+  #view-progress #exProgressChart{height:255px;}
+  #view-progress .progressSummary{gap:10px;}
+  #view-progress .progressMetric{padding:12px 14px;}
+}
+@media (min-width:900px){
+  #view-progress .progressLists{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;}
+  #view-progress .progressCard{padding:20px;}
+  #view-progress #exProgressChart{height:290px;}
+}

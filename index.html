@@ -398,45 +398,60 @@
       </div>
     </section>
 
-    <!-- PROGRESSI -->
+    <!-- PROGRESSI · mobile first -->
     <section class="view hidden" id="view-progress">
-      <div class="grid">
-        <div class="card">
-          <h2>Storico sessioni</h2>
-          <div class="tip">Tocca una sessione per vedere il dettaglio (e riprendere se è aperta).</div>
-          <div id="sessionHistory" class="list"></div>
+      <div class="progressPage">
+        <div class="progressPageHead">
+          <div class="eyebrow">IL TUO PERCORSO</div>
+          <h2>Progressi</h2>
+          <p class="muted">Allenamenti, carichi e record in un unico posto.</p>
         </div>
 
-        <div class="card">
-          <h2>PR (avanzati)</h2>
-          <div class="tip">PR = migliori carichi (e stime tipo 1RM). Tocca un esercizio in sessione per confrontare “Ultima/Best”.</div>
-          <div id="prBox" class="list"></div>
-        </div>
+        <div id="progressKpis" class="progressKpis" aria-label="Riepilogo allenamenti"></div>
 
-        <div class="card" style="grid-column: 1 / -1;">
-          <h2>Progressione esercizio</h2>
-
-          <div class="row">
-            <label class="field" style="min-width:260px; flex:1">
-              <span>Esercizio</span>
-              <select id="exProgressSelect"></select>
-            </label>
-            <label class="field" style="min-width:180px">
-              <span>Modalità</span>
+        <div class="card progressCard progressChartCard">
+          <div class="progressTitleRow">
+            <div><h2>Andamento</h2><p class="muted small">Confronta le prestazioni di un esercizio.</p></div>
+          </div>
+          <div class="progressFilters">
+            <label class="field" for="exProgressSelect"><span>Esercizio</span><select id="exProgressSelect"></select></label>
+            <label class="field" for="exProgressMode"><span>Indicatore</span>
               <select id="exProgressMode">
-                <option value="best">Miglior kg (sessione)</option>
-                <option value="avg">Media kg (sessione)</option>
-                <option value="volume">Volume (kg * reps)</option>
+                <option value="best">Carico massimo (kg)</option>
+                <option value="avg">Carico medio (kg)</option>
+                <option value="volume">Volume (kg × rip.)</option>
               </select>
             </label>
           </div>
-
-          <div class="tip" id="exProgressSummary" style="margin-top:10px">
-            Seleziona un esercizio per vedere l’andamento.
+          <div class="progressPeriod" role="group" aria-label="Periodo del grafico">
+            <button type="button" class="progressPeriodBtn active" data-progress-range="12" aria-pressed="true">Ultime 12</button>
+            <button type="button" class="progressPeriodBtn" data-progress-range="30" aria-pressed="false">Ultime 30</button>
+            <button type="button" class="progressPeriodBtn" data-progress-range="all" aria-pressed="false">Tutte</button>
           </div>
+          <div id="exProgressSummary" class="progressSummary" aria-live="polite"></div>
+          <div class="progressCanvasWrap">
+            <canvas id="exProgressChart" height="240" role="img" aria-label="Andamento dei carichi per sessione"></canvas>
+          </div>
+          <div id="progressPointDetail" class="progressPointDetail" aria-live="polite">Tocca un punto del grafico per i dettagli.</div>
+        </div>
 
-          <div class="item" style="margin-top:10px">
-            <canvas id="exProgressChart" height="140" style="width:100%; display:block;"></canvas>
+        <div class="progressLists">
+          <div class="card progressCard">
+            <div class="progressTitleRow"><div><h2>Storico</h2><p class="muted small">Tocca una sessione per aprirla o modificarla.</p></div><span id="historyCounter" class="progressCount"></span></div>
+            <div class="progressPeriod progressHistoryFilters" role="group" aria-label="Filtra storico">
+              <button type="button" class="progressPeriodBtn active" data-history-filter="all" aria-pressed="true">Tutte</button>
+              <button type="button" class="progressPeriodBtn" data-history-filter="closed" aria-pressed="false">Concluse</button>
+              <button type="button" class="progressPeriodBtn" data-history-filter="open" aria-pressed="false">In corso</button>
+            </div>
+            <label class="field progressSearch" for="historySearch"><span class="srOnly">Cerca nello storico</span><input id="historySearch" type="search" placeholder="Cerca un allenamento…" autocomplete="off"></label>
+            <div id="sessionHistory" class="progressRows"></div>
+            <button type="button" id="historyShowMore" class="btn progressMore" hidden>Mostra altre sessioni</button>
+          </div>
+          <div class="card progressCard">
+            <div class="progressTitleRow"><div><h2>Record personali</h2><p class="muted small">Carico massimo registrato per esercizio.</p></div><span id="prCounter" class="progressCount"></span></div>
+            <label class="field progressSearch" for="prSearch"><span class="srOnly">Cerca un esercizio</span><input id="prSearch" type="search" placeholder="Cerca un esercizio…" autocomplete="off"></label>
+            <div id="prBox" class="progressRows"></div>
+            <button type="button" id="prShowMore" class="btn progressMore" hidden>Mostra altri record</button>
           </div>
         </div>
       </div>
@@ -474,7 +489,7 @@
               <input id="fileImport" type="file" accept="application/json" hidden />
             </label>
           </div>
-          <p class="muted small">Versione Fit Planner v41 · dati locali su questo dispositivo</p>
+          <p class="muted small">Versione Fit Planner v42 · dati locali su questo dispositivo</p>
         </div>
       </div>
     </section>

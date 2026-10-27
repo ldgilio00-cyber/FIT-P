@@ -1,43 +1,50 @@
-# Fit Planner v41 · aggiornamento iPhone (27/10/2026)
+# Fit Planner Premium v42 — Progressi adattivi (27/10/2026)
 
-Patch incrementale della **v40**. Nessun backend o libreria nuova. I file v40 non elencati nell'archivio v41 devono restare invariati. Non cambiare dominio o percorso di pubblicazione: la memoria locale è legata all'origine della PWA.
+Patch incrementale dalla **v41**, progettata per la PWA installata sulla Home di iPhone. Conserva **tutte le funzionalità** precedenti. Non introduce librerie, account o backend. Lo ZIP contiene **esclusivamente i file modificati**, con i percorsi originali `FIT-P-main/...`.
 
 ## Installazione
 
-1. Dalla v40, prima di modificare i file, aprire **Impostazioni → Esporta JSON** e salvare il backup.
-2. Sovrascrivere insieme i cinque file contenuti in questo ZIP, conservando le directory originali.
-3. Aprire Fit Planner dalla schermata Home dell'iPhone. Se appare l'avviso di nuova versione, toccare **Aggiorna app**; quindi riaprire la PWA.
-4. Verificare la dicitura **v41** in Impostazioni. Controllare numero di schede, diete, allenamenti e voci della spesa.
-5. Conservare il backup della v40 fino al completamento dei test.
+1. Prima dell'aggiornamento, dalla v41 vai in **Impostazioni → Export JSON** e conserva una copia dei dati.
+2. Sostituisci **insieme** i cinque file contenuti nello ZIP, senza cambiare la cartella di pubblicazione o il dominio della PWA.
+3. Apri l'app dall'icona nella schermata Home dell'iPhone. Se compare **Aggiorna app**, premi il pulsante e riapri l'app.
+4. Nelle Impostazioni verifica **Fit Planner v42**. Ricontrolla le schede, lo storico, la dieta e la lista della spesa.
 
-La chiave locale è ancora `fitplanner_v7`. Nessuna migrazione distruttiva: i nuovi filtri hanno valori di default quando non presenti nei vecchi dati. Le date visibili rimangono `GG/MM/AAAA`; internamente si mantengono i formati storici necessari a confronti e salvataggi.
+La chiave `localStorage` resta `fitplanner_v7`. **Nessun dato viene azzerato o convertito in un nuovo formato.** I nuovi filtri dello storico e del grafico sono soltanto preferenze dell'interfaccia, senza cambiare le sessioni registrate.
 
-## Novità / changelog
+## Interventi per file
 
-| File | Modifica |
+| File | Intervento |
 | --- | --- |
-| `app.js` | Allenamento con **tutte le serie visibili** in griglia. Kg/ripetizioni salvati direttamente su `localStorage` a ogni variazione e alla sospensione della PWA, senza considerare automaticamente completate serie vuote. Memoria dell'indice di serie. Ultima prestazione di ogni serie, carico di progressione proposto e pulsante esplicito **Usa**. Modifica porzioni dalla giornata, apertura rapida editor pasto, copia a domani. Filtri Spesa Da acquistare/Tutti con acquistati alla fine. |
-| `index.html` | Rimossi banner esplicativi del periodo Spesa, aggiunti pulsanti per le viste Spesa e sostituita icona Impostazioni con un ingranaggio chiaro e proporzionato. Versione v41. |
-| `styles.css` | Griglia stabile delle serie per iPhone, campi grandi, separazione dei suggerimenti dai risultati, controllo Fine che resta visibile durante lo scroll con tastiera aperta. Ritocchi a barra inferiore e card, pulsanti per Dieta e Spesa. |
-| `sw.js` | Nome cache aggiornato a `fitplanner-static-v41-20261027` per caricare simultaneamente i file nuovi. |
-| `README.md` | Istruzioni e test. |
+| `index.html` | Sezione Progressi ridisegnata: quattro indicatori, grafico con selettore esercizio, indicatore e intervallo, dettaglio del punto toccato, ricerca/filtri dello storico e ricerca dei record. Aggiornata versione v42. |
+| `app.js` | Riepiloghi calcolati dai dati reali, progressione a 12/30/tutte le sessioni, grafico canvas ad alta risoluzione adattivo, ridisegno al cambio dimensioni, selezione di un punto con tocco, lista sessioni/record a caricamento progressivo, ricerca, filtri Aperte/Concluse e collegamento record → grafico. Migliorata l'interpretazione del volume: senza ripetizioni valide il volume è sconosciuto, non zero. |
+| `styles.css` | Layout mobile-first senza larghezze fisse, campi e pulsanti adatti al tocco, card compatte, grafico con spazio per assi ed etichette, disposizione responsive a 320–430 px e desktop, tema chiaro/scuro. |
+| `sw.js` | Cache aggiornata a `fitplanner-static-v42-20261027` per pubblicare insieme HTML/JS/CSS. |
+| `README.md` | Questo changelog e la guida di verifica. |
 
-Le icone PWA, il logo, il manifest e gli altri asset della v40 non sono inclusi perché non modificati.
+### Regole dei numeri visualizzati
 
-## Verifiche pratiche su iPhone (PWA installata)
+- **Sessioni concluse**: numero delle sessioni marcate chiuse nello storico.
+- **Serie registrate**: serie che hanno **sia** carico valido **sia** ripetizioni positive.
+- **Volume totale**: somma `kg × ripetizioni` delle serie registrate (non è una stima delle calorie né del consumo energetico).
+- **Esercizi registrati**: numero di esercizi distinti con almeno una serie valida.
+- **Carico massimo/medio**: rispettivamente il kg più alto e la media dei kg registrati per sessione dell'esercizio scelto. Il grafico può includere anche dati di sessioni in corso, riconoscibili nello storico.
+- **Volume del grafico**: solo sessioni che contengono almeno una serie con kg e ripetizioni validi.
+- **Variazione**: differenza tra il primo e l'ultimo valore nel periodo selezionato; non è necessariamente un miglioramento continuo.
+- **Record personali**: kg massimo registrato per esercizio. Non è una stima di 1RM.
 
-1. **Serie:** aprire un allenamento, toccare direttamente la riga 2 o 3, inserire kg e ripetizioni. Tutte le righe devono essere visibili nella stessa scheda. Con **Fine** deve chiudersi la tastiera senza perdere i valori.
-2. **Salvataggio automatico:** digitare una serie, poi uscire con **Esci** senza premere “Salva e avvia timer”. Riaprire dalla Home; i valori devono essere presenti. Prova anche bloccando e sbloccando l'iPhone.
-3. **Carichi suggeriti:** su un esercizio con prestazioni precedenti appaiono i riferimenti. I suggerimenti restano distinti dai valori reali; solo **Usa** compila il carico della serie selezionata.
-4. **Timer:** avviare, mettere in pausa, saltare. Controllare che le posizioni di timer e campi rimangano stabili. Verificare iOS standalone con tastiera numerica aperta anche sulla quarta serie.
-5. **Dieta:** scegliere un giorno. Modificare la quantità di un alimento, copiarne il pasto al giorno successivo, rinominarlo se serve e segnare diversi pasti consumati. Verificare dopo il riavvio.
-6. **Spesa:** controllare che il testo/banner sulle date sia sparito. Generare la spesa, spuntare prodotti, alternare **Da acquistare** e **Tutti**: gli acquistati devono comparire nella parte finale di Tutti. Modificare scorte e aggiungere un prodotto manuale, quindi ricalcolare: non devono sparire.
-7. **Dati precedenti e offline:** controllare schede, sessioni, quantità, pasti consumati e spesa dopo l'aggiornamento; aprire la PWA in modalità aereo dopo averla aggiornata una volta online.
+## Cosa testare su iPhone
 
-## Test effettuati realmente
+1. Apri **Progressi** dalla barra inferiore. Verifica che **non sia necessario scorrere orizzontalmente** e che nessuna scheda oltrepassi il bordo a sinistra o a destra.
+2. In **Andamento**, scegli un esercizio e cambia **Carico massimo**, **Carico medio**, **Volume**. I numeri devono cambiare e mostrare l'unità corretta.
+3. Tocca **Ultime 12**, **Ultime 30**, **Tutte**: il grafico e le tre statistiche devono rispondere. Tocca un punto per leggere **data italiana, valore e posizione** sotto il grafico.
+4. Nello **Storico**, prova **Tutte**, **Concluse**, **In corso**, ricerca per nome e il pulsante **Mostra altre sessioni**. Apri una sessione e verifica che il dettaglio e le serie rimangano modificabili.
+5. In **Record personali**, cerca un esercizio e tocca il risultato **Vedi grafico**: deve selezionare quell'esercizio e riportarti all'andamento.
+6. Chiudi e riapri l'app. Le sessioni devono risultare identiche. Controlla anche **Palestra**, **Dieta**, **Spesa** e il backup JSON.
+7. Ripeti almeno un controllo in modalità scura, con testo ingrandito e con l'iPhone in modalità aereo dopo aver aggiornato la PWA una volta online.
 
-- `node --check app.js`: sintassi JS corretta.
-- Test automatizzati in **Chromium** con viewport **320×568, 375×667, 390×844 e 430×932**: tutte le serie presenti, modifiche kg/reps persistite, cambio serie/esercizio, timer, quantità dieta, copia del pasto, editor del pasto, filtri Spesa, banner rimosso e nessun errore JS nei percorsi testati.
-- Simulazione tastiera su viewport **320×568 e 390×844**, con 350 px di schermo occupati: test sul campo della terza serie e sul pulsante Fine superati.
+## Test effettivamente eseguiti
 
-**Non eseguiti**: test su Safari WebKit di un iPhone fisico, installazione/reinstallazione PWA reale, timer con iOS fisico bloccato e misurazione di resistenza all'interruzione improvvisa dell'alimentazione. In particolare, il comportamento della tastiera installata nella Home va confermato sul dispositivo.
+- Sintassi JavaScript validata con `node --check`.
+- Test automatizzati in Chromium con viewport **320×568, 375×667, 390×844, 430×932 e 1024×768**: nessun overflow orizzontale, card entro i bordi, nessun errore JS nei percorsi provati.
+- Verificati: KPI calcolati da 42 sessioni simulate, filtro 12/30/tutte, lettura di un punto del grafico, cambio indicatore, ricerca e filtri storico, caricamento progressivo, apertura del dettaglio di una sessione, collegamento dal record al grafico.
+- **Non eseguiti**: test su un iPhone reale con PWA standalone, test con VoiceOver e collaudo completo dell'aggiornamento Service Worker installato. Sono necessarie le prove pratiche indicate sopra.
